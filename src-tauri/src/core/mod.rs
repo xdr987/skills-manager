@@ -35,4 +35,5 @@ pub mod sync_metadata;
 pub mod timing;
 pub mod tool_adapters;
 pub mod tool_service;
+pub mod translate_api;
 pub mod well_known;

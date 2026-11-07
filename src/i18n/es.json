@@ -407,6 +407,21 @@
     "syncNothingToDo": "Este skill ya cubre todos los agentes instalados",
     "syncSummary": "{{synced}} / {{total}} sincronizados",
     "synced": "Sincronizado",
+    "notes": {
+      "title": "Notas",
+      "add": "Añadir nota",
+      "edit": "Editar",
+      "placeholder": "Escribe tus propias notas: qué hace esta skill, cuándo usarla…",
+      "saved": "Notas guardadas"
+    },
+    "translate": {
+      "button": "Traducir",
+      "buttonTitle": "Traducir al chino con Baidu Translate",
+      "docButton": "Traducir documento",
+      "translating": "Traduciendo...",
+      "original": "Original",
+      "notConfigured": "La API de Baidu Translate no está configurada. Introduce el APP ID y la clave en Ajustes."
+    },
     "tags": {
       "addTag": "Agregar etiqueta...",
       "allTags": "Todas las etiquetas",
@@ -573,6 +588,14 @@
     "agentName": "Nombre del agente",
     "agentNamePlaceholder": "Mi agente",
     "agentsSummary": "{{detected}} detectados, {{enabled}} habilitados, {{custom}} personalizados",
+    "baiduTranslate": {
+      "title": "API de Baidu Translate",
+      "credentials": "APP ID y clave secreta",
+      "desc": "Solicítala gratis en la plataforma abierta de Baidu Translate (fanyi-api.baidu.com). Se usa para la traducción con un clic de descripciones y documentos de skills.",
+      "appIdPlaceholder": "APP ID de Baidu Translate",
+      "apiKeyPlaceholder": "Clave secreta de Baidu Translate",
+      "saved": "Configuración de Baidu Translate guardada"
+    },
     "autoUpdate": {
       "applyDesc": "Cuando está activado, las actualizaciones se descargan y aplican automáticamente; cuando está desactivado, solo se marcan en la Biblioteca para actualización manual.",
       "applyLabel": "Aplicar actualizaciones automáticamente",

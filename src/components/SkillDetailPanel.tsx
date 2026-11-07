@@ -6,13 +6,19 @@ import {
   Github,
   HardDrive,
   Globe,
+  Languages,
+  Loader2,
+  StickyNote,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import { cn } from "../utils";
 import {
   getSkillDocument,
   getSourceSkillDocument,
   getSkillSourceDiff,
+  setSkillNotes,
+  translateText,
   type ManagedSkill,
   type Project,
   type SkillDocument,
@@ -21,6 +27,7 @@ import {
   type SkillToolToggle,
   type ToolInfo,
 } from "../lib/tauri";
+import { getErrorMessage, getErrorKind } from "../lib/error";
 import { SkillSourceDiffViewer } from "./SkillSourceDiffViewer";
 import { DetailSheet } from "./DetailSheet";
 import { SkillMarkdown } from "./SkillMarkdown";
@@ -37,7 +44,18 @@ interface Props {
   onToggleTool?: (tool: string, enabled: boolean) => void;
   projects?: Project[];
   onProjectsChanged?: () => void;
+  onNotesChanged?: () => void;
 }
+
+/** Toast message for a failed translation, mapping the "not configured" case
+ *  to a localized hint instead of the backend's English message. */
+const translateErrorMessage = (
+  error: unknown,
+  t: (key: string) => string
+): string =>
+  getErrorKind(error) === "invalid_input"
+    ? t("mySkills.translate.notConfigured")
+    : getErrorMessage(error, t("common.error"));
 
 export function SkillDetailPanel({
   skill,
@@ -48,6 +66,7 @@ export function SkillDetailPanel({
   onToggleTool,
   projects,
   onProjectsChanged,
+  onNotesChanged,
 }: Props) {
   if (!skill) return null;
 
@@ -71,6 +90,7 @@ export function SkillDetailPanel({
       onToggleTool={onToggleTool}
       projects={projects}
       onProjectsChanged={onProjectsChanged}
+      onNotesChanged={onNotesChanged}
     />
   );
 }
@@ -84,6 +104,7 @@ function SkillDetailPanelContent({
   onToggleTool,
   projects,
   onProjectsChanged,
+  onNotesChanged,
 }: {
   skill: ManagedSkill;
   onClose: () => void;
@@ -93,6 +114,7 @@ function SkillDetailPanelContent({
   onToggleTool?: (tool: string, enabled: boolean) => void;
   projects?: Project[];
   onProjectsChanged?: () => void;
+  onNotesChanged?: () => void;
 }) {
   const { t } = useTranslation();
   const [doc, setDoc] = useState<SkillDocument | null>(null);
@@ -102,6 +124,15 @@ function SkillDetailPanelContent({
   const [loading, setLoading] = useState(true);
   const [isMetadataExpanded, setIsMetadataExpanded] = useState(false);
   const [contentTab, setContentTab] = useState<"local" | "diff" | "source">("local");
+  // Notes (user annotations on the skill, persisted through set_skill_notes).
+  const [notesEditing, setNotesEditing] = useState(false);
+  const [notesDraft, setNotesDraft] = useState("");
+  const [notesSaving, setNotesSaving] = useState(false);
+  // One-click translations: the short description and the full document.
+  const [descTranslated, setDescTranslated] = useState<string | null>(null);
+  const [descTranslating, setDescTranslating] = useState(false);
+  const [docTranslated, setDocTranslated] = useState<string | null>(null);
+  const [docTranslating, setDocTranslating] = useState(false);
   const localRequestIdRef = useRef(0);
   const sourceRequestIdRef = useRef(0);
   const diffRequestedRef = useRef(false);
@@ -182,6 +213,44 @@ function SkillDetailPanelContent({
       .catch(() => setSourceDiffFailed(true));
   }, [contentTab, supportsSourceDiff, skillId]);
 
+  const handleSaveNotes = async () => {
+    setNotesSaving(true);
+    try {
+      await setSkillNotes(skillId, notesDraft);
+      toast.success(t("mySkills.notes.saved"));
+      setNotesEditing(false);
+      onNotesChanged?.();
+    } catch (error) {
+      toast.error(getErrorMessage(error, t("common.error")));
+    } finally {
+      setNotesSaving(false);
+    }
+  };
+
+  const handleTranslateDescription = async () => {
+    if (!skill.description) return;
+    setDescTranslating(true);
+    try {
+      setDescTranslated(await translateText(skill.description));
+    } catch (error) {
+      toast.error(translateErrorMessage(error, t));
+    } finally {
+      setDescTranslating(false);
+    }
+  };
+
+  const handleTranslateDoc = async () => {
+    if (!activeDoc) return;
+    setDocTranslating(true);
+    try {
+      setDocTranslated(await translateText(activeDoc.content));
+    } catch (error) {
+      toast.error(translateErrorMessage(error, t));
+    } finally {
+      setDocTranslating(false);
+    }
+  };
+
   const sourceIcon = (type: string) => {
     switch (type) {
       case "git":
@@ -248,6 +317,59 @@ function SkillDetailPanelContent({
           {skill.central_path}
         </span>
       </div>
+      <div className="mt-3 rounded-xl border border-border-subtle bg-surface/70">
+        <div className="flex items-center justify-between px-4 py-2">
+          <span className="flex items-center gap-1.5 text-[12px] font-medium text-muted">
+            <StickyNote className="h-3.5 w-3.5" />
+            {t("mySkills.notes.title")}
+          </span>
+          {!notesEditing && (
+            <button
+              type="button"
+              onClick={() => {
+                setNotesDraft(skill.notes ?? "");
+                setNotesEditing(true);
+              }}
+              className="text-[12px] text-muted transition-colors hover:text-secondary"
+            >
+              {skill.notes ? t("mySkills.notes.edit") : t("mySkills.notes.add")}
+            </button>
+          )}
+        </div>
+        {notesEditing ? (
+          <div className="px-4 pb-3">
+            <textarea
+              value={notesDraft}
+              onChange={(e) => setNotesDraft(e.target.value)}
+              placeholder={t("mySkills.notes.placeholder")}
+              rows={4}
+              autoFocus
+              className="w-full resize-y rounded-lg border border-border-subtle bg-background px-3 py-2 text-[13px] leading-6 text-secondary outline-none focus:border-accent"
+            />
+            <div className="mt-2 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleSaveNotes}
+                disabled={notesSaving}
+                className="rounded-full bg-accent px-3 py-1.5 text-[12px] font-medium text-white transition-opacity disabled:opacity-50"
+              >
+                {notesSaving ? t("common.loading") : t("common.save")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setNotesEditing(false)}
+                className="rounded-full bg-surface-hover px-3 py-1.5 text-[12px] font-medium text-muted transition-colors hover:text-secondary"
+              >
+                {t("common.cancel")}
+              </button>
+            </div>
+          </div>
+        ) : skill.notes ? (
+          <p className="whitespace-pre-wrap px-4 pb-3 text-[13px] leading-6 text-secondary">
+            {skill.notes}
+          </p>
+        ) : null}
+      </div>
       {metadataItems.length > 0 && (
         <div className="mt-4 rounded-xl border border-border-subtle bg-surface/70">
           <button
@@ -307,7 +429,35 @@ function SkillDetailPanelContent({
     <DetailSheet
       open={true}
       title={skill.name}
-      description={skill.description ? <p className="line-clamp-3">{skill.description}</p> : undefined}
+      description={
+        skill.description ? (
+          <div className="flex items-start gap-2">
+            <p className="line-clamp-3 min-w-0 flex-1">
+              {descTranslated ?? skill.description}
+            </p>
+            <button
+              type="button"
+              onClick={() =>
+                descTranslated
+                  ? setDescTranslated(null)
+                  : void handleTranslateDescription()
+              }
+              disabled={descTranslating}
+              title={t("mySkills.translate.buttonTitle")}
+              className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border-subtle bg-surface px-2 py-1 text-[12px] font-medium text-muted transition-colors hover:text-secondary disabled:opacity-60"
+            >
+              {descTranslating ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Languages className="h-3 w-3" />
+              )}
+              {descTranslated
+                ? t("mySkills.translate.original")
+                : t("mySkills.translate.button")}
+            </button>
+          </div>
+        ) : undefined
+      }
       meta={meta}
       onClose={onClose}
     >
@@ -358,6 +508,35 @@ function SkillDetailPanelContent({
         </div>
       )}
 
+      {contentTab === "local" && activeDoc && (
+        <div className="mb-3 flex justify-end">
+          <button
+            type="button"
+            onClick={() =>
+              docTranslated ? setDocTranslated(null) : void handleTranslateDoc()
+            }
+            disabled={docTranslating}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium transition-colors disabled:opacity-60",
+              docTranslated
+                ? "bg-surface-hover text-muted hover:text-secondary"
+                : "bg-accent text-white"
+            )}
+          >
+            {docTranslating ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Languages className="h-3 w-3" />
+            )}
+            {docTranslating
+              ? t("mySkills.translate.translating")
+              : docTranslated
+                ? t("mySkills.translate.original")
+                : t("mySkills.translate.docButton")}
+          </button>
+        </div>
+      )}
+
       {loading ? (
         <div className="mt-12 text-center text-[13px] text-muted">{t("common.loading")}</div>
       ) : contentTab === "diff" ? (
@@ -379,7 +558,7 @@ function SkillDetailPanelContent({
           <div className="mt-12 text-center text-[13px] text-muted">{t("mySkills.sourceDiffUnavailable")}</div>
         )
       ) : activeDoc ? (
-        <SkillMarkdown content={activeDoc.content} />
+        <SkillMarkdown content={docTranslated ?? activeDoc.content} />
       ) : (
         <div className="mt-12 text-center text-[13px] text-muted">{t("common.documentMissing")}</div>
       )}

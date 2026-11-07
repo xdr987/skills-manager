@@ -2,7 +2,7 @@ use anyhow::{bail, Context, Result};
 use rusqlite::Connection;
 
 /// Current schema version. Bump this when adding a new migration.
-const LATEST_VERSION: u32 = 9;
+const LATEST_VERSION: u32 = 10;
 
 /// Run all pending migrations on the database.
 ///
@@ -56,6 +56,7 @@ fn migrate_step(conn: &Connection, from_version: u32) -> Result<()> {
         6 => migrate_v6_to_v7(conn),
         7 => migrate_v7_to_v8(conn),
         8 => migrate_v8_to_v9(conn),
+        9 => migrate_v9_to_v10(conn),
         _ => bail!("unknown migration version: {from_version}"),
     }
 }
@@ -332,6 +333,21 @@ fn migrate_v8_to_v9(conn: &Connection) -> Result<()> {
             skill_id TEXT PRIMARY KEY REFERENCES skills(id) ON DELETE CASCADE,
             stamp TEXT NOT NULL,
             content_hash TEXT NOT NULL
+        );
+        ",
+    )?;
+    Ok(())
+}
+
+/// v9 → v10: free-form per-skill notes (user annotations, e.g. a Chinese
+/// summary of an English skill). Mirrors `skill_tags`: a side table keyed by
+/// skill id, backed up through the sync metadata files.
+fn migrate_v9_to_v10(conn: &Connection) -> Result<()> {
+    conn.execute_batch(
+        "
+        CREATE TABLE IF NOT EXISTS skill_notes (
+            skill_id TEXT PRIMARY KEY REFERENCES skills(id) ON DELETE CASCADE,
+            notes TEXT NOT NULL
         );
         ",
     )?;

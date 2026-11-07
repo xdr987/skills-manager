@@ -410,6 +410,21 @@
       "clear": "清除来源筛选",
       "unknownSource": "未分类"
     },
+    "notes": {
+      "title": "备注",
+      "add": "添加备注",
+      "edit": "编辑",
+      "placeholder": "写点中文说明：这个技能是干什么的、什么时候用……",
+      "saved": "备注已保存"
+    },
+    "translate": {
+      "button": "翻译",
+      "buttonTitle": "用百度翻译译成中文",
+      "docButton": "翻译全文",
+      "translating": "翻译中...",
+      "original": "原文",
+      "notConfigured": "尚未配置百度翻译 API，请到设置页填写 APP ID 和密钥"
+    },
     "tags": {
       "filter": "标签",
       "allTags": "全部标签",
@@ -689,6 +704,14 @@
     "proxyUrlPlaceholder": "http://127.0.0.1:7890",
     "proxyUrlSaved": "代理设置已保存",
     "proxyUrlInvalid": "代理地址必须以 http://、https:// 或 socks5:// 开头",
+    "baiduTranslate": {
+      "title": "百度翻译 API",
+      "credentials": "APP ID 和密钥",
+      "desc": "在百度翻译开放平台（fanyi-api.baidu.com）免费申请，用于一键翻译技能简介和文档。",
+      "appIdPlaceholder": "百度翻译 APP ID",
+      "apiKeyPlaceholder": "百度翻译密钥",
+      "saved": "百度翻译配置已保存"
+    },
     "autoUpdate": {
       "title": "Skill 自动更新",
       "intervalLabel": "检查频率",

@@ -15,18 +15,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: macos-latest
-            target: aarch64-apple-darwin
-            label: macOS-arm64
-          - platform: macos-latest
-            target: x86_64-apple-darwin
-            label: macOS-x64
-          - platform: ubuntu-22.04
-            target: x86_64-unknown-linux-gnu
-            label: Linux-x64
-          - platform: ubuntu-24.04-arm
-            target: aarch64-unknown-linux-gnu
-            label: Linux-arm64
           - platform: windows-latest
             target: x86_64-pc-windows-msvc
             label: Windows-x64
@@ -212,12 +200,9 @@ jobs:
           tagName: v__VERSION__
           releaseName: 'Skills Manager v__VERSION__'
           releaseBody: ${{ steps.changelog.outputs.body }}
-          # Publish only after every platform is verified. v1.29.0 shipped with
-          # Windows and Linux assets while both macOS legs were still notarizing,
-          # because assets go public the moment each leg finishes. tauri-action
-          # looks a draft up by listing releases, so concurrent matrix legs still
-          # converge on one draft rather than creating four.
-          releaseDraft: true
+          # Publish immediately: this fork builds a single Windows leg, so
+          # there is no cross-platform barrier to wait behind.
+          releaseDraft: false
           prerelease: false
           updaterJsonKeepUniversal: true
           args: --target ${{ matrix.target }}

@@ -404,6 +404,21 @@
       "git": "Git",
       "skillssh": "skills.sh"
     },
+    "notes": {
+      "title": "備註",
+      "add": "新增備註",
+      "edit": "編輯",
+      "placeholder": "寫點中文說明：這個技能是做什麼的、什麼時候用……",
+      "saved": "備註已儲存"
+    },
+    "translate": {
+      "button": "翻譯",
+      "buttonTitle": "用百度翻譯譯成中文",
+      "docButton": "翻譯全文",
+      "translating": "翻譯中...",
+      "original": "原文",
+      "notConfigured": "尚未設定百度翻譯 API，請到設定頁填寫 APP ID 和金鑰"
+    },
     "tags": {
       "filter": "標籤",
       "allTags": "全部標籤",
@@ -681,6 +696,14 @@
     "proxyUrlPlaceholder": "http://127.0.0.1:7890",
     "proxyUrlSaved": "代理設定已儲存",
     "proxyUrlInvalid": "代理位址必須以 http://、https:// 或 socks5:// 開頭",
+    "baiduTranslate": {
+      "title": "百度翻譯 API",
+      "credentials": "APP ID 和金鑰",
+      "desc": "在百度翻譯開放平台（fanyi-api.baidu.com）免費申請，用於一鍵翻譯技能簡介和文件。",
+      "appIdPlaceholder": "百度翻譯 APP ID",
+      "apiKeyPlaceholder": "百度翻譯金鑰",
+      "saved": "百度翻譯設定已儲存"
+    },
     "autoUpdate": {
       "title": "Skill 自動更新",
       "intervalLabel": "檢查頻率",

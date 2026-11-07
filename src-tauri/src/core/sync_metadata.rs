@@ -41,6 +41,11 @@ pub struct SkillMetaFile {
     pub enabled: bool,
     pub tags: Vec<String>,
     pub source: SourceMeta,
+    /// User notes ride the backup alongside tags. Optional + omitted when
+    /// unset so metadata files written before the feature existed stay
+    /// byte-identical under `canonical_json_bytes`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub notes: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -279,6 +284,7 @@ pub(crate) fn reindex_from_metadata_unlocked(store: &SkillStore) -> Result<()> {
         };
         store.upsert_skill(&record)?;
         store.set_tags_for_skill(&meta.skill_id, &meta.tags)?;
+        store.set_notes_for_skill(&meta.skill_id, meta.notes.as_deref())?;
         // After the row, so a stamp is never stored ahead of the hash it vouches
         // for. A cache that could not be written costs a re-read next launch.
         if let Some(stamp) = &hashed.stamp {
@@ -312,7 +318,8 @@ pub(crate) fn ensure_skill_metadata_unlocked(store: &SkillStore, skill_id: &str)
         .get_skill_by_id(skill_id)?
         .ok_or_else(|| anyhow!("skill not found: {skill_id}"))?;
     let tags = store.get_tags_map()?.remove(skill_id).unwrap_or_default();
-    write_skill_file(&skill, &tags)
+    let notes = store.get_notes_map()?.remove(skill_id);
+    write_skill_file(&skill, &tags, notes.as_deref())
 }
 
 pub fn cleanup_temporary_files() -> Result<()> {
@@ -357,8 +364,13 @@ fn metadata_has_complete_scenario_snapshot() -> bool {
 
 fn write_skill_records_from_db(store: &SkillStore) -> Result<()> {
     let mut tags = store.get_tags_map()?;
+    let mut notes = store.get_notes_map()?;
     for skill in store.get_all_skills()? {
-        write_skill_file(&skill, &tags.remove(&skill.id).unwrap_or_default())?;
+        write_skill_file(
+            &skill,
+            &tags.remove(&skill.id).unwrap_or_default(),
+            notes.remove(&skill.id).as_deref(),
+        )?;
     }
     Ok(())
 }
@@ -472,7 +484,7 @@ fn remove_stale_json_files(dir: &Path, expected_stems: &HashSet<String>) -> Resu
     Ok(())
 }
 
-fn write_skill_file(skill: &SkillRecord, tags: &[String]) -> Result<()> {
+fn write_skill_file(skill: &SkillRecord, tags: &[String], notes: Option<&str>) -> Result<()> {
     let path = relative_skill_path(&skill.central_path)?;
     let tags = sorted_tags(tags);
     let source_ref = match skill.source_type.as_str() {
@@ -492,6 +504,7 @@ fn write_skill_file(skill: &SkillRecord, tags: &[String]) -> Result<()> {
             subpath: skill.source_subpath.clone(),
             branch: skill.source_branch.clone(),
         },
+        notes: notes.map(str::to_string),
     };
     atomic_write_json(
         &metadata_dir()

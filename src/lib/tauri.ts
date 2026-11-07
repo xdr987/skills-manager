@@ -39,6 +39,7 @@ export interface ManagedSkill {
   targets: SkillTarget[];
   preset_ids: string[];
   tags: string[];
+  notes: string | null;
 }
 
 export interface SkillTarget {
@@ -398,11 +399,19 @@ export const getAllTags = () => invoke<string[]>("get_all_tags");
 export const setSkillTags = (skillId: string, tags: string[]) =>
   invoke<void>("set_skill_tags", { skillId, tags });
 
+export const setSkillNotes = (skillId: string, notes: string) =>
+  invoke<void>("set_skill_notes", { skillId, notes });
+
 export const renameTag = (oldName: string, newName: string) =>
   invoke<void>("rename_tag", { oldName, newName });
 
 export const deleteTag = (name: string) =>
   invoke<void>("delete_tag", { name });
+
+// ── Translate ──
+
+export const translateText = (text: string) =>
+  invoke<string>("translate_text", { text });
 
 // ── Sync ──
 

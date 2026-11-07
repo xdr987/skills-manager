@@ -1296,6 +1296,38 @@ impl SkillStore {
         Ok(map)
     }
 
+    // ── Skill Notes ──
+
+    pub fn get_notes_map(&self) -> Result<std::collections::HashMap<String, String>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt =
+            conn.prepare("SELECT skill_id, notes FROM skill_notes ORDER BY skill_id")?;
+        let rows = stmt.query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })?;
+        Ok(rows.filter_map(|r| r.ok()).collect())
+    }
+
+    /// Set (or clear, with `None`) the user notes on one skill.
+    pub fn set_notes_for_skill(&self, skill_id: &str, notes: Option<&str>) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        match notes.map(str::trim).filter(|s| !s.is_empty()) {
+            Some(text) => {
+                conn.execute(
+                    "INSERT OR REPLACE INTO skill_notes (skill_id, notes) VALUES (?1, ?2)",
+                    params![skill_id, text],
+                )?;
+            }
+            None => {
+                conn.execute(
+                    "DELETE FROM skill_notes WHERE skill_id = ?1",
+                    params![skill_id],
+                )?;
+            }
+        }
+        Ok(())
+    }
+
     /// Globally rename a tag across every skill that carries it. Returns the
     /// ids of the affected skills so the caller can refresh their metadata.
     /// If a skill already has `new`, the rows are merged (no duplicate) thanks

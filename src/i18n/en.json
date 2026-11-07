@@ -410,6 +410,21 @@
       "clear": "Clear source filter",
       "unknownSource": "Unclassified"
     },
+    "notes": {
+      "title": "Notes",
+      "add": "Add note",
+      "edit": "Edit",
+      "placeholder": "Write your own notes: what this skill does, when to use it…",
+      "saved": "Notes saved"
+    },
+    "translate": {
+      "button": "Translate",
+      "buttonTitle": "Translate to Chinese with Baidu Translate",
+      "docButton": "Translate document",
+      "translating": "Translating...",
+      "original": "Original",
+      "notConfigured": "Baidu Translate API is not configured. Set the APP ID and key in Settings."
+    },
     "tags": {
       "filter": "Tags",
       "allTags": "All Tags",
@@ -689,6 +704,14 @@
     "proxyUrlPlaceholder": "http://127.0.0.1:7890",
     "proxyUrlSaved": "Proxy settings saved",
     "proxyUrlInvalid": "Proxy URL must start with http://, https://, or socks5://",
+    "baiduTranslate": {
+      "title": "Baidu Translate API",
+      "credentials": "APP ID and secret key",
+      "desc": "Apply for free at the Baidu Translate open platform (fanyi-api.baidu.com). Used for one-click translation of skill descriptions and documents.",
+      "appIdPlaceholder": "Baidu Translate APP ID",
+      "apiKeyPlaceholder": "Baidu Translate secret key",
+      "saved": "Baidu Translate settings saved"
+    },
     "autoUpdate": {
       "title": "Skill Auto-Update",
       "intervalLabel": "Check Frequency",

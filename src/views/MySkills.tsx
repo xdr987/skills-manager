@@ -1706,6 +1706,14 @@ export function MySkills() {
                     <p className="text-[13px] leading-[18px] text-muted truncate">
                       {skill.description || "—"}
                     </p>
+                    {skill.notes && (
+                      <p
+                        className="mt-1 truncate text-[12px] leading-[17px] text-faint"
+                        title={skill.notes}
+                      >
+                        {skill.notes}
+                      </p>
+                    )}
                     {((badge && !showUpdatePill) || conflictIds.has(skill.id)) && (
                       <div className="mt-2 flex flex-wrap items-center gap-1.5">
                         {conflictIds.has(skill.id) && (
@@ -2060,6 +2068,7 @@ export function MySkills() {
         onToggleTool={handleToggleSkillTool}
         projects={projects}
         onProjectsChanged={refreshProjects}
+        onNotesChanged={refreshManagedSkills}
       />
 
       <ConfirmDialog

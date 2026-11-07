@@ -404,6 +404,21 @@
       "git": "Git",
       "skillssh": "skills.sh"
     },
+    "notes": {
+      "title": "메모",
+      "add": "메모 추가",
+      "edit": "편집",
+      "placeholder": "직접 메모를 남겨보세요: 이 스킬이 하는 일, 언제 쓰는지 등…",
+      "saved": "메모가 저장되었습니다"
+    },
+    "translate": {
+      "button": "번역",
+      "buttonTitle": "바이두 번역으로 중국어 번역",
+      "docButton": "문서 번역",
+      "translating": "번역 중...",
+      "original": "원문",
+      "notConfigured": "바이두 번역 API가 설정되지 않았습니다. 설정 페이지에서 APP ID와 키를 입력하세요."
+    },
     "tags": {
       "filter": "태그",
       "allTags": "모든 태그",
@@ -681,6 +696,14 @@
     "proxyUrlPlaceholder": "http://127.0.0.1:7890",
     "proxyUrlSaved": "프록시 설정을 저장했습니다",
     "proxyUrlInvalid": "프록시 URL은 http://, https://, socks5:// 중 하나로 시작해야 합니다",
+    "baiduTranslate": {
+      "title": "바이두 번역 API",
+      "credentials": "APP ID 및 시크릿 키",
+      "desc": "바이두 번역 오픈 플랫폼(fanyi-api.baidu.com)에서 무료로 신청할 수 있습니다. 스킬 설명과 문서의 원클릭 번역에 사용됩니다.",
+      "appIdPlaceholder": "바이두 번역 APP ID",
+      "apiKeyPlaceholder": "바이두 번역 시크릿 키",
+      "saved": "바이두 번역 설정이 저장되었습니다"
+    },
     "autoUpdate": {
       "title": "스킬 자동 업데이트",
       "intervalLabel": "확인 주기",

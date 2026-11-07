@@ -222,6 +222,7 @@ pub struct ManagedSkillDto {
     pub targets: Vec<TargetDto>,
     pub preset_ids: Vec<String>,
     pub tags: Vec<String>,
+    pub notes: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -346,10 +347,13 @@ pub async fn get_managed_skills(
         let skills = store.get_all_skills().map_err(AppError::db)?;
         let all_targets = store.get_all_targets().map_err(AppError::db)?;
         let tags_map = store.get_tags_map().map_err(AppError::db)?;
+        let notes_map = store.get_notes_map().map_err(AppError::db)?;
         let count = skills.len();
         let dtos: Vec<ManagedSkillDto> = skills
             .into_iter()
-            .map(|skill| managed_skill_to_dto(&store, skill, &all_targets, &tags_map))
+            .map(|skill| {
+                managed_skill_to_dto(&store, skill, &all_targets, &tags_map, &notes_map)
+            })
             .collect();
         let elapsed_ms = start.elapsed().as_millis();
         if should_log_first_or_slow(&GET_MANAGED_SKILLS_FIRST_CALL, elapsed_ms, 100) {
@@ -372,10 +376,13 @@ pub async fn get_skills_for_preset(
             .map_err(AppError::db)?;
         let all_targets = store.get_all_targets().map_err(AppError::db)?;
         let tags_map = store.get_tags_map().map_err(AppError::db)?;
+        let notes_map = store.get_notes_map().map_err(AppError::db)?;
 
         Ok(skills
             .into_iter()
-            .map(|skill| managed_skill_to_dto(&store, skill, &all_targets, &tags_map))
+            .map(|skill| {
+                managed_skill_to_dto(&store, skill, &all_targets, &tags_map, &notes_map)
+            })
             .collect())
     })
     .await?
@@ -2033,6 +2040,7 @@ fn managed_skill_to_dto(
     skill: SkillRecord,
     all_targets: &[SkillTargetRecord],
     tags_map: &std::collections::HashMap<String, Vec<String>>,
+    notes_map: &std::collections::HashMap<String, String>,
 ) -> ManagedSkillDto {
     let targets = all_targets
         .iter()
@@ -2050,6 +2058,7 @@ fn managed_skill_to_dto(
 
     let preset_ids = store.get_scenarios_for_skill(&skill.id).unwrap_or_default();
     let tags = tags_map.get(&skill.id).cloned().unwrap_or_default();
+    let notes = notes_map.get(&skill.id).cloned();
 
     // Prefer description from SKILL.md so the list view reflects edits made
     // directly on disk (file watcher emits a change event; this read serves
@@ -2082,6 +2091,7 @@ fn managed_skill_to_dto(
         targets,
         preset_ids,
         tags,
+        notes,
     }
 }
 
@@ -2095,7 +2105,14 @@ pub fn managed_skill_by_id(
         .ok_or_else(|| AppError::not_found("Skill not found"))?;
     let all_targets = store.get_all_targets().map_err(AppError::db)?;
     let tags_map = store.get_tags_map().map_err(AppError::db)?;
-    Ok(managed_skill_to_dto(store, skill, &all_targets, &tags_map))
+    let notes_map = store.get_notes_map().map_err(AppError::db)?;
+    Ok(managed_skill_to_dto(
+        store,
+        skill,
+        &all_targets,
+        &tags_map,
+        &notes_map,
+    ))
 }
 
 /// Update an installed git-sourced skill.
@@ -3340,6 +3357,33 @@ pub fn set_skill_tags_internal(
 
     sync_metadata::with_repo_lock("set skill tags", || {
         store.set_tags_for_skill(skill_id, &normalized)?;
+        sync_metadata::ensure_skill_metadata_unlocked(store, skill_id)
+    })
+    .map_err(AppError::db)
+}
+
+#[tauri::command]
+pub async fn set_skill_notes(
+    skill_id: String,
+    notes: String,
+    store: State<'_, Arc<SkillStore>>,
+) -> Result<(), AppError> {
+    let store = store.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        set_skill_notes_internal(&store, &skill_id, &notes)
+    })
+    .await?
+}
+
+/// Shared implementation for GUI and CLI note writes: one repo lock covers the
+/// DB row and its backup metadata file, mirroring the tag write path.
+pub fn set_skill_notes_internal(
+    store: &SkillStore,
+    skill_id: &str,
+    notes: &str,
+) -> Result<(), AppError> {
+    sync_metadata::with_repo_lock("set skill notes", || {
+        store.set_notes_for_skill(skill_id, Some(notes))?;
         sync_metadata::ensure_skill_metadata_unlocked(store, skill_id)
     })
     .map_err(AppError::db)

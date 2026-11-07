@@ -144,6 +144,10 @@ struct TrayMenuData {
     update_count: usize,
     presets: Vec<TrayPresetEntry>,
     check_updates_running: bool,
+    /// Tray labels follow the in-app language setting; the tray lives outside
+    /// the webview's i18n, so the flag rides in with the rest of the data.
+    /// Defaults to Chinese: this CN build targets Chinese users first.
+    zh: bool,
 }
 
 fn collect_tray_menu_data(store: &core::skill_store::SkillStore) -> TrayMenuData {
@@ -203,10 +207,20 @@ fn collect_tray_menu_data(store: &core::skill_store::SkillStore) -> TrayMenuData
         update_count,
         presets,
         check_updates_running: TRAY_CHECK_UPDATES_RUNNING.load(Ordering::SeqCst),
+        zh: store
+            .get_setting("language")
+            .unwrap_or(None)
+            .map_or(true, |lang| lang.starts_with("zh")),
     }
 }
 
 fn format_status_line(data: &TrayMenuData) -> String {
+    if data.zh {
+        return format!(
+            "{} 个技能 · {} 个 Agent 已连接",
+            data.total_skills, data.coding_agent_count
+        );
+    }
     let skill_label = if data.total_skills == 1 { "skill" } else { "skills" };
     let agent_label = if data.coding_agent_count == 1 { "agent" } else { "agents" };
     format!(
@@ -216,6 +230,18 @@ fn format_status_line(data: &TrayMenuData) -> String {
 }
 
 fn format_tooltip(data: &TrayMenuData) -> String {
+    if data.zh {
+        if data.update_count > 0 {
+            return format!(
+                "Skills Manager · {} 技能 · {} Agent · {} 个可更新",
+                data.total_skills, data.coding_agent_count, data.update_count
+            );
+        }
+        return format!(
+            "Skills Manager · {} 技能 · {} Agent",
+            data.total_skills, data.coding_agent_count
+        );
+    }
     if data.update_count > 0 {
         format!(
             "Skills Manager · {} skills · {} agents · {} updates",
@@ -241,7 +267,19 @@ fn preset_menu_item_id(preset: &TrayPresetEntry) -> (String, &'static str) {
     }
 }
 
-fn preset_menu_label(preset: &TrayPresetEntry) -> String {
+fn preset_menu_label(preset: &TrayPresetEntry, zh: bool) -> String {
+    if zh {
+        return match preset.status() {
+            TrayPresetStatus::Active => {
+                format!("✓ {}（{} 个技能）", preset.name, preset.skill_count)
+            }
+            TrayPresetStatus::Partial => format!(
+                "{}（{}/{} 已同步）",
+                preset.name, preset.synced_pairs, preset.total_pairs
+            ),
+            _ => format!("{}（{} 个技能）", preset.name, preset.skill_count),
+        };
+    }
     let unit = if preset.skill_count == 1 { "skill" } else { "skills" };
     match preset.status() {
         TrayPresetStatus::Active => format!("✓ {} ({} {unit})", preset.name, preset.skill_count),
@@ -296,7 +334,9 @@ fn build_tray_menu_from_data<R: tauri::Runtime>(
     menu.append(&status_line)?;
 
     if data.update_count > 0 {
-        let updates_label = if data.update_count == 1 {
+        let updates_label = if data.zh {
+            format!("有 {} 个技能可更新", data.update_count)
+        } else if data.update_count == 1 {
             "1 skill update available".to_string()
         } else {
             format!("{} skill updates available", data.update_count)
@@ -308,12 +348,16 @@ fn build_tray_menu_from_data<R: tauri::Runtime>(
 
     menu.append(&PredefinedMenuItem::separator(app)?)?;
 
-    let presets_submenu = Submenu::new(app, "Presets", true)?;
+    let presets_submenu = Submenu::new(app, if data.zh { "预设" } else { "Presets" }, true)?;
     if data.coding_agent_count == 0 {
         let no_agents = MenuItem::with_id(
             app,
             "tray-presets-no-agents",
-            "No coding agents connected",
+            if data.zh {
+                "未连接任何 Agent"
+            } else {
+                "No coding agents connected"
+            },
             false,
             None::<&str>,
         )?;
@@ -328,7 +372,11 @@ fn build_tray_menu_from_data<R: tauri::Runtime>(
             let empty = MenuItem::with_id(
                 app,
                 "tray-presets-empty",
-                "No presets with skills",
+                if data.zh {
+                    "没有含技能的预设"
+                } else {
+                    "No presets with skills"
+                },
                 false,
                 None::<&str>,
             )?;
@@ -336,7 +384,7 @@ fn build_tray_menu_from_data<R: tauri::Runtime>(
         } else {
             for preset in visible {
                 let (id, _action) = preset_menu_item_id(preset);
-                let label = preset_menu_label(preset);
+                let label = preset_menu_label(preset, data.zh);
                 let item = MenuItem::with_id(app, id, label, true, None::<&str>)?;
                 presets_submenu.append(&item)?;
             }
@@ -346,10 +394,26 @@ fn build_tray_menu_from_data<R: tauri::Runtime>(
 
     menu.append(&PredefinedMenuItem::separator(app)?)?;
 
-    let show_item = MenuItem::with_id(app, "show", "Open Skills Manager", true, None::<&str>)?;
+    let show_item = MenuItem::with_id(
+        app,
+        "show",
+        if data.zh {
+            "打开 Skills Manager"
+        } else {
+            "Open Skills Manager"
+        },
+        true,
+        None::<&str>,
+    )?;
     menu.append(&show_item)?;
 
-    let check_label = if data.check_updates_running {
+    let check_label = if data.zh {
+        if data.check_updates_running {
+            "正在检查更新..."
+        } else {
+            "检查技能更新"
+        }
+    } else if data.check_updates_running {
         "Checking for updates..."
     } else {
         "Check for skill updates"
@@ -366,7 +430,11 @@ fn build_tray_menu_from_data<R: tauri::Runtime>(
     let folder_item = MenuItem::with_id(
         app,
         TRAY_OPEN_FOLDER_ID,
-        "Open Skills Folder",
+        if data.zh {
+            "打开技能文件夹"
+        } else {
+            "Open Skills Folder"
+        },
         true,
         None::<&str>,
     )?;
@@ -374,7 +442,13 @@ fn build_tray_menu_from_data<R: tauri::Runtime>(
 
     menu.append(&PredefinedMenuItem::separator(app)?)?;
 
-    let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+    let quit_item = MenuItem::with_id(
+        app,
+        "quit",
+        if data.zh { "退出" } else { "Quit" },
+        true,
+        None::<&str>,
+    )?;
     menu.append(&quit_item)?;
 
     Ok((menu, format_tooltip(data)))

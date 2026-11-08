@@ -87,8 +87,11 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           BODY_EN=$(sed -n "/^## \[${VERSION}\]/,/^## \[/{ /^## \[${VERSION}\]/d; /^## \[/d; p; }" CHANGELOG.md | awk -f scripts/strip-empty-sections.awk)
           BODY_ZH=$(sed -n "/^## \[${VERSION}\]/,/^## \[/{ /^## \[${VERSION}\]/d; /^## \[/d; p; }" CHANGELOG-zh.md | awk -f scripts/strip-empty-sections.awk)
-          # Release date: prefer the date on the CHANGELOG heading; fall back to today.
-          RELEASE_DATE=$(grep -m1 "^## \[${VERSION}\] - " CHANGELOG.md | sed -E "s/^## \[${VERSION}\] - ([0-9-]+).*/\1/")
+          # Release date: prefer the date on the CHANGELOG heading; fall back to
+          # today. The CN build carries a custom version (1.43.4-cn.1) that has
+          # no CHANGELOG section, and the step runs under `pipefail`, so a
+          # no-match grep must not kill the step.
+          RELEASE_DATE=$(grep -m1 "^## \[${VERSION}\] - " CHANGELOG.md | sed -E "s/^## \[${VERSION}\] - ([0-9-]+).*/\1/" || true)
           if [ -z "$RELEASE_DATE" ]; then RELEASE_DATE=$(date -u +%Y-%m-%d); fi
           # Previous tag for the commit range (skip the current tag itself).
           PREV_TAG=$(git tag --sort=-v:refname --merged "${{ github.ref_name }}" | grep -v "^${{ github.ref_name }}$" | head -n1)

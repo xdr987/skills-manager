@@ -415,7 +415,11 @@
       "add": "Add note",
       "edit": "Edit",
       "placeholder": "Write your own notes: what this skill does, when to use it…",
-      "saved": "Notes saved"
+      "saved": "Notes saved",
+      "generate": "Generate Chinese notes",
+      "generateTitle": "Translate descriptions of skills without notes into Chinese as their default note",
+      "generated": "Generated Chinese notes for {{count}} skills",
+      "noneMissing": "Every skill already has a note"
     },
     "translate": {
       "button": "Translate",
@@ -1126,6 +1130,12 @@
     "batchRemoved": "{{count}} skills removed",
     "batchRemoveFailed": "{{count}} skills failed to remove",
     "localSkills": {
+      "notes": {
+        "title": "Notes",
+        "generate": "Generate Chinese note",
+        "generateTitle": "Translate the skill description into Chinese as its default note",
+        "saved": "Note saved"
+      },
       "searchPlaceholder": "Search agent skills...",
       "empty": "No local skills found",
       "summary": "{{total}} / {{managed}} managed / {{synced}} in sync",

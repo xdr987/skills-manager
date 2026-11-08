@@ -1328,6 +1328,49 @@ impl SkillStore {
         Ok(())
     }
 
+    // ── Agent-local skill notes ──
+
+    /// Notes for skills that exist only inside one agent's directory, keyed by
+    /// the skill's path relative to that agent's skills root.
+    pub fn get_local_notes_map(
+        &self,
+        tool: &str,
+    ) -> Result<std::collections::HashMap<String, String>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT relative_path, notes FROM local_skill_notes WHERE tool = ?1 ORDER BY relative_path",
+        )?;
+        let rows = stmt.query_map(params![tool], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })?;
+        Ok(rows.filter_map(|r| r.ok()).collect())
+    }
+
+    /// Set (or clear, with `None`) the notes on one agent-local skill.
+    pub fn set_local_skill_notes(
+        &self,
+        tool: &str,
+        relative_path: &str,
+        notes: Option<&str>,
+    ) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        match notes.map(str::trim).filter(|s| !s.is_empty()) {
+            Some(text) => {
+                conn.execute(
+                    "INSERT OR REPLACE INTO local_skill_notes (tool, relative_path, notes, updated_at) VALUES (?1, ?2, ?3, ?4)",
+                    params![tool, relative_path, text, chrono::Utc::now().timestamp_millis()],
+                )?;
+            }
+            None => {
+                conn.execute(
+                    "DELETE FROM local_skill_notes WHERE tool = ?1 AND relative_path = ?2",
+                    params![tool, relative_path],
+                )?;
+            }
+        }
+        Ok(())
+    }
+
     /// Globally rename a tag across every skill that carries it. Returns the
     /// ids of the affected skills so the caller can refresh their metadata.
     /// If a skill already has `new`, the rows are merged (no duplicate) thanks

@@ -28,6 +28,7 @@ import {
   Share2,
   Tag,
   Trash2,
+  Languages,
 } from "lucide-react";
 import { open as dialogOpen } from "@tauri-apps/plugin-dialog";
 import { useNavigate } from "react-router-dom";
@@ -54,7 +55,7 @@ import type {
   GitBackupStatus,
   SkillToolToggle,
 } from "../lib/tauri";
-import { getErrorMessage } from "../lib/error";
+import { getErrorMessage, getErrorKind } from "../lib/error";
 import { normalizeSkillSearch, skillSearchMatches } from "../lib/skillSearch";
 import {
   buildSourceGroups,
@@ -196,6 +197,7 @@ export function MySkills() {
   const [batchSyncDialogOpen, setBatchSyncDialogOpen] = useState(false);
   const [batchToggling, setBatchToggling] = useState(false);
   const [checkingAll, setCheckingAll] = useState(false);
+  const [generatingNotes, setGeneratingNotes] = useState(false);
   const [checkingSkillId, setCheckingSkillId] = useState<string | null>(null);
   const [updatingSkillId, setUpdatingSkillId] = useState<string | null>(null);
   const [batchUpdating, setBatchUpdating] = useState(false);
@@ -872,6 +874,27 @@ export function MySkills() {
     }
   };
 
+  const handleGenerateNotes = async () => {
+    setGeneratingNotes(true);
+    try {
+      const count = await api.generateMissingNotes();
+      if (count > 0) {
+        toast.success(t("mySkills.notes.generated", { count }));
+      } else {
+        toast.info(t("mySkills.notes.noneMissing"));
+      }
+    } catch (error: unknown) {
+      toast.error(
+        getErrorKind(error) === "invalid_input"
+          ? t("mySkills.translate.notConfigured")
+          : getErrorMessage(error, t("common.error"))
+      );
+    } finally {
+      await refreshManagedSkills();
+      setGeneratingNotes(false);
+    }
+  };
+
   const handleCheckUpdate = async (skill: ManagedSkill) => {
     setCheckingSkillId(skill.id);
     try {
@@ -1278,6 +1301,15 @@ export function MySkills() {
             >
               <RotateCcw className={cn("h-3.5 w-3.5", batchUpdating && "animate-spin")} />
               {t("mySkills.updateActions.updateAvailable", { count: availableUpdateCount })}
+            </button>
+            <button
+              onClick={handleGenerateNotes}
+              disabled={generatingNotes}
+              title={t("mySkills.notes.generateTitle")}
+              className="mr-2 inline-flex items-center gap-1 rounded-md px-3 py-2 text-[13px] font-medium text-muted transition-colors hover:bg-surface-hover hover:text-secondary disabled:opacity-50"
+            >
+              <Languages className={cn("h-3.5 w-3.5", generatingNotes && "animate-pulse")} />
+              {t("mySkills.notes.generate")}
             </button>
             <span aria-hidden="true" className="mx-1 h-5 w-px shrink-0 self-center bg-border-subtle" />
             <button

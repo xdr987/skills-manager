@@ -2,7 +2,7 @@ use anyhow::{bail, Context, Result};
 use rusqlite::Connection;
 
 /// Current schema version. Bump this when adding a new migration.
-const LATEST_VERSION: u32 = 10;
+const LATEST_VERSION: u32 = 11;
 
 /// Run all pending migrations on the database.
 ///
@@ -57,6 +57,7 @@ fn migrate_step(conn: &Connection, from_version: u32) -> Result<()> {
         7 => migrate_v7_to_v8(conn),
         8 => migrate_v8_to_v9(conn),
         9 => migrate_v9_to_v10(conn),
+        10 => migrate_v10_to_v11(conn),
         _ => bail!("unknown migration version: {from_version}"),
     }
 }
@@ -348,6 +349,25 @@ fn migrate_v9_to_v10(conn: &Connection) -> Result<()> {
         CREATE TABLE IF NOT EXISTS skill_notes (
             skill_id TEXT PRIMARY KEY REFERENCES skills(id) ON DELETE CASCADE,
             notes TEXT NOT NULL
+        );
+        ",
+    )?;
+    Ok(())
+}
+
+/// v10 → v11: notes for skills that live only inside an agent's directory and
+/// have no central record to hang a `skill_notes` row on. Keyed by the agent
+/// tool plus the skill's path inside that agent's skills root, so the note
+/// follows the folder rather than an id the library does not know.
+fn migrate_v10_to_v11(conn: &Connection) -> Result<()> {
+    conn.execute_batch(
+        "
+        CREATE TABLE IF NOT EXISTS local_skill_notes (
+            tool TEXT NOT NULL,
+            relative_path TEXT NOT NULL,
+            notes TEXT NOT NULL,
+            updated_at INTEGER,
+            PRIMARY KEY(tool, relative_path)
         );
         ",
     )?;

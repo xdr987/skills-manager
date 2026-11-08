@@ -412,7 +412,11 @@
       "add": "Añadir nota",
       "edit": "Editar",
       "placeholder": "Escribe tus propias notas: qué hace esta skill, cuándo usarla…",
-      "saved": "Notas guardadas"
+      "saved": "Notas guardadas",
+      "generate": "Generar notas en chino",
+      "generateTitle": "Traduce las descripciones de las skills sin nota al chino como nota predeterminada",
+      "generated": "Notas en chino generadas para {{count}} skills",
+      "noneMissing": "Todas las skills ya tienen nota"
     },
     "translate": {
       "button": "Traducir",
@@ -1099,6 +1103,12 @@
     "deleteSelected": "Eliminar {{count}}",
     "deselectAll": "Deseleccionar todo",
     "localSkills": {
+      "notes": {
+        "title": "Notas",
+        "generate": "Generar nota en chino",
+        "generateTitle": "Traduce la descripción de la skill al chino como nota predeterminada",
+        "saved": "Nota guardada"
+      },
       "deleteLocal": "Eliminar skill local",
       "deleteLocalBatchConfirm": "¿Eliminar permanentemente {{count}} skills locales de {{agent}}? Solo existen en la carpeta de este agente y no se pueden recuperar.",
       "deleteLocalBatchFailed": "No se pudieron eliminar {{count}} skills locales",

@@ -409,7 +409,11 @@
       "add": "新增備註",
       "edit": "編輯",
       "placeholder": "寫點中文說明：這個技能是做什麼的、什麼時候用……",
-      "saved": "備註已儲存"
+      "saved": "備註已儲存",
+      "generate": "產生中文備註",
+      "generateTitle": "把沒有備註的技能簡介翻譯成中文，作為預設備註",
+      "generated": "已為 {{count}} 個技能產生中文備註",
+      "noneMissing": "所有技能都已有備註"
     },
     "translate": {
       "button": "翻譯",
@@ -1118,6 +1122,12 @@
     "batchRemoved": "已移除 {{count}} 個 Skill",
     "batchRemoveFailed": "{{count}} 個 Skill 移除失敗",
     "localSkills": {
+      "notes": {
+        "title": "備註",
+        "generate": "產生中文備註",
+        "generateTitle": "把技能簡介翻譯成中文，作為預設備註",
+        "saved": "備註已儲存"
+      },
       "searchPlaceholder": "搜尋 Agent Skills…",
       "empty": "未發現本機 Skills",
       "summary": "{{total}} / {{managed}} 個受管理 / {{synced}} 個已同步",

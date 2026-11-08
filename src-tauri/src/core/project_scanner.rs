@@ -36,6 +36,10 @@ pub struct ProjectSkillInfo {
     pub sync_status: String,
     #[serde(default)]
     pub center_skill_id: Option<String>,
+    /// Display note for the card: the central skill's note when the local copy
+    /// maps to the library, otherwise the agent-local note keyed by path.
+    #[serde(default)]
+    pub notes: Option<String>,
     #[serde(skip_serializing)]
     pub last_modified_at: Option<i64>,
     #[serde(skip_serializing)]
@@ -203,13 +207,14 @@ fn read_skills_from_dir_recursive(
                 enabled,
                 agent: agent.to_string(),
                 agent_display_name: agent_display_name.to_string(),
-                tags: Vec::new(),
-                in_center: false,
-                sync_status: "project_only".to_string(),
-                center_skill_id: None,
-                last_modified_at,
-                content_hash,
-            });
+                  tags: Vec::new(),
+                  in_center: false,
+                  sync_status: "project_only".to_string(),
+                  center_skill_id: None,
+                  notes: None,
+                  last_modified_at,
+                  content_hash,
+              });
             continue;
         }
 

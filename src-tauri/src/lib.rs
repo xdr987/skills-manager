@@ -1116,6 +1116,7 @@ pub fn run() {
             commands::skills::batch_import_folder,
             // Translate
             commands::translate::translate_text,
+            commands::translate::generate_missing_notes,
             // Sync
             commands::sync::sync_skill_to_tool,
             commands::sync::unsync_skill_from_tool,
@@ -1196,6 +1197,7 @@ pub fn run() {
             commands::agent_workspace::import_global_local_skill_to_center,
             commands::agent_workspace::update_global_local_skill_from_center,
             commands::agent_workspace::delete_global_local_skill,
+            commands::agent_workspace::set_local_skill_notes,
             // Presets
             commands::presets::get_presets,
             commands::presets::get_active_preset,

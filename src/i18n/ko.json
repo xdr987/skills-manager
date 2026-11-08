@@ -409,7 +409,11 @@
       "add": "메모 추가",
       "edit": "편집",
       "placeholder": "직접 메모를 남겨보세요: 이 스킬이 하는 일, 언제 쓰는지 등…",
-      "saved": "메모가 저장되었습니다"
+      "saved": "메모가 저장되었습니다",
+      "generate": "중국어 메모 생성",
+      "generateTitle": "메모 없는 스킬의 설명을 중국어로 번역해 기본 메모로 저장합니다",
+      "generated": "{{count}}개 스킬에 중국어 메모를 생성했습니다",
+      "noneMissing": "모든 스킬에 메모가 있습니다"
     },
     "translate": {
       "button": "번역",
@@ -1112,6 +1116,12 @@
     "batchRemoved": "스킬 {{count}}개를 제거했습니다",
     "batchRemoveFailed": "스킬 {{count}}개를 제거하지 못했습니다",
     "localSkills": {
+      "notes": {
+        "title": "메모",
+        "generate": "중국어 메모 생성",
+        "generateTitle": "스킬 설명을 중국어로 번역해 기본 메모로 저장합니다",
+        "saved": "메모가 저장되었습니다"
+      },
       "searchPlaceholder": "에이전트 스킬 검색...",
       "empty": "로컬 스킬을 찾지 못했습니다",
       "summary": "전체 {{total}}개, 관리 중 {{managed}}개, 동기화 {{synced}}개",

@@ -415,7 +415,11 @@
       "add": "添加备注",
       "edit": "编辑",
       "placeholder": "写点中文说明：这个技能是干什么的、什么时候用……",
-      "saved": "备注已保存"
+      "saved": "备注已保存",
+      "generate": "生成中文备注",
+      "generateTitle": "把没有备注的技能简介翻译成中文，作为默认备注",
+      "generated": "已为 {{count}} 个技能生成中文备注",
+      "noneMissing": "所有技能都已有备注"
     },
     "translate": {
       "button": "翻译",
@@ -1126,6 +1130,12 @@
     "batchRemoved": "已移除 {{count}} 个 Skill",
     "batchRemoveFailed": "{{count}} 个 Skill 移除失败",
     "localSkills": {
+      "notes": {
+        "title": "备注",
+        "generate": "生成中文备注",
+        "generateTitle": "把技能简介翻译成中文，作为默认备注",
+        "saved": "备注已保存"
+      },
       "searchPlaceholder": "搜索 Agent Skills…",
       "empty": "未发现本地 Skills",
       "summary": "{{total}} / {{managed}} 个受管理 / {{synced}} 个已同步",

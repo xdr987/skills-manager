@@ -54,6 +54,8 @@ fn enrich_center_status(
     all_managed: &[SkillRecord],
     all_targets: &[SkillTargetRecord],
     tags_map: &std::collections::HashMap<String, Vec<String>>,
+    central_notes: &std::collections::HashMap<String, String>,
+    local_notes: &std::collections::HashMap<String, String>,
 ) -> Vec<project_scanner::ProjectSkillInfo> {
     for skill in &mut skills {
         let matched = find_verified_center_match(skill, all_managed, all_targets);
@@ -65,6 +67,14 @@ fn enrich_center_status(
             .and_then(|skill_id| tags_map.get(skill_id).cloned())
             .unwrap_or_default();
         skill.sync_status = classify_sync_status(skill, matched);
+        // Card note: the central note wins for synced skills; agent-local
+        // skills (no central record) fall back to the path-keyed note.
+        skill.notes = skill
+            .center_skill_id
+            .as_ref()
+            .and_then(|skill_id| central_notes.get(skill_id))
+            .cloned()
+            .or_else(|| local_notes.get(&skill.relative_path).cloned());
     }
     skills
 }
@@ -151,12 +161,40 @@ pub async fn get_global_local_skills(
         let all_managed = store.get_all_skills().map_err(AppError::db)?;
         let all_targets = store.get_all_targets().map_err(AppError::db)?;
         let tags_map = store.get_tags_map().unwrap_or_default();
+        let central_notes = store.get_notes_map().unwrap_or_default();
+        let local_notes = store.get_local_notes_map(&adapter.key).unwrap_or_default();
         Ok(enrich_center_status(
             skills,
             &all_managed,
             &all_targets,
             &tags_map,
+            &central_notes,
+            &local_notes,
         ))
+    })
+    .await?
+}
+
+/// Set the notes on one agent-local skill (a skill that lives in the agent's
+/// own directory and may have no central record). Notes are keyed by the
+/// agent tool plus the skill's path under its skills root.
+#[tauri::command]
+pub async fn set_local_skill_notes(
+    store: State<'_, Arc<SkillStore>>,
+    agent: String,
+    skill_relative_path: String,
+    notes: String,
+) -> Result<(), AppError> {
+    let store = store.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let adapter = adapter_for_agent(&store, &agent)?;
+        ensure_safe_skill_relative_path(&skill_relative_path)?;
+        // The path must belong to this agent's skills root, and the skill must
+        // exist there — a stale UI must not be able to write stray rows.
+        let skill = find_agent_skill(&adapter, &skill_relative_path)?;
+        store
+            .set_local_skill_notes(&adapter.key, &skill.relative_path, Some(&notes))
+            .map_err(AppError::db)
     })
     .await?
 }
@@ -905,13 +943,14 @@ mod tests {
             enabled: true,
             agent: "test_agent".to_string(),
             agent_display_name: "Test Agent".to_string(),
-            tags: Vec::new(),
-            in_center: false,
-            sync_status: "project_only".to_string(),
-            center_skill_id: None,
-            last_modified_at: None,
-            content_hash: Some("same-hash".to_string()),
-        };
+              tags: Vec::new(),
+              in_center: false,
+              sync_status: "project_only".to_string(),
+              center_skill_id: None,
+              notes: None,
+              last_modified_at: None,
+              content_hash: Some("same-hash".to_string()),
+          };
 
         let managed = SkillRecord {
             id: "center-id".to_string(),

@@ -176,6 +176,7 @@ export interface ProjectSkill {
   in_center: boolean;
   sync_status: "project_only" | "in_sync" | "project_newer" | "center_newer" | "diverged";
   center_skill_id: string | null;
+  notes: string | null;
 }
 
 export interface ProjectSkillDocument {
@@ -412,6 +413,11 @@ export const deleteTag = (name: string) =>
 
 export const translateText = (text: string) =>
   invoke<string>("translate_text", { text });
+
+/** Generate default Chinese notes (translated descriptions) for every
+ *  library skill that has none. Returns how many skills got a note. */
+export const generateMissingNotes = () =>
+  invoke<number>("generate_missing_notes");
 
 // ── Sync ──
 
@@ -871,3 +877,6 @@ export const updateGlobalLocalSkillFromCenter = (agent: string, skillRelativePat
 
 export const deleteGlobalLocalSkill = (agent: string, skillRelativePath: string) =>
   invoke<void>("delete_global_local_skill", { agent, skillRelativePath });
+
+export const setLocalSkillNotes = (agent: string, skillRelativePath: string, notes: string) =>
+  invoke<void>("set_local_skill_notes", { agent, skillRelativePath, notes });

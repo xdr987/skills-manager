@@ -2,7 +2,7 @@ use anyhow::{bail, Context, Result};
 use rusqlite::Connection;
 
 /// Current schema version. Bump this when adding a new migration.
-const LATEST_VERSION: u32 = 11;
+const LATEST_VERSION: u32 = 12;
 
 /// Run all pending migrations on the database.
 ///
@@ -58,6 +58,7 @@ fn migrate_step(conn: &Connection, from_version: u32) -> Result<()> {
         8 => migrate_v8_to_v9(conn),
         9 => migrate_v9_to_v10(conn),
         10 => migrate_v10_to_v11(conn),
+        11 => migrate_v11_to_v12(conn),
         _ => bail!("unknown migration version: {from_version}"),
     }
 }
@@ -368,6 +369,23 @@ fn migrate_v10_to_v11(conn: &Connection) -> Result<()> {
             notes TEXT NOT NULL,
             updated_at INTEGER,
             PRIMARY KEY(tool, relative_path)
+        );
+        ",
+    )?;
+    Ok(())
+}
+
+/// v11 → v12: translation cache. One-click translations are keyed by the
+/// SHA-256 of their source text, so a cached hit always matches unchanged
+/// content and any skill update naturally produces a new key (and a fresh
+/// translation) without explicit invalidation.
+fn migrate_v11_to_v12(conn: &Connection) -> Result<()> {
+    conn.execute_batch(
+        "
+        CREATE TABLE IF NOT EXISTS translation_cache (
+            source_hash TEXT PRIMARY KEY,
+            translated TEXT NOT NULL,
+            updated_at INTEGER
         );
         ",
     )?;

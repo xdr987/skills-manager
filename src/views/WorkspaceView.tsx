@@ -187,6 +187,7 @@ function WorkspaceSkillCard({
   title,
   description,
   note,
+  onNoteSave,
   tags = [],
   status,
   fileCount = 0,
@@ -202,6 +203,8 @@ function WorkspaceSkillCard({
   description?: string | null;
   /** User annotation / generated Chinese summary, shown under the description. */
   note?: string | null;
+  /** When provided, clicking the note edits it in place on the card. */
+  onNoteSave?: (text: string) => Promise<void>;
   tags?: WorkspaceSkillCardTag[];
   status: WorkspaceSkillCardStatus;
   fileCount?: number;
@@ -213,6 +216,62 @@ function WorkspaceSkillCard({
   selected?: boolean;
   onClick: () => void;
 }) {
+  const [noteEditing, setNoteEditing] = useState(false);
+  const [noteDraft, setNoteDraft] = useState("");
+  const [noteSaving, setNoteSaving] = useState(false);
+
+  const saveNote = async () => {
+    if (!onNoteSave) return;
+    if (noteDraft.trim() === (note ?? "").trim()) {
+      setNoteEditing(false);
+      return;
+    }
+    setNoteSaving(true);
+    try {
+      await onNoteSave(noteDraft.trim());
+      setNoteEditing(false);
+    } finally {
+      setNoteSaving(false);
+    }
+  };
+
+  const noteBlock = onNoteSave && noteEditing ? (
+    <textarea
+      value={noteDraft}
+      onChange={(e) => setNoteDraft(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          void saveNote();
+        }
+        if (e.key === "Escape") {
+          setNoteEditing(false);
+        }
+      }}
+      onBlur={() => void saveNote()}
+      onClick={(e) => e.stopPropagation()}
+      rows={2}
+      autoFocus
+      disabled={noteSaving}
+      className="mt-1 w-full resize-y rounded-md border border-accent/60 bg-background px-1.5 py-1 text-[12px] leading-[17px] text-secondary outline-none"
+    />
+  ) : note && onNoteSave ? (
+    <p
+      className="mt-1 cursor-text truncate text-[12px] leading-[17px] text-faint transition-colors hover:text-secondary"
+      title={`${note}（点击编辑）`}
+      onClick={(e) => {
+        e.stopPropagation();
+        setNoteDraft(note);
+        setNoteEditing(true);
+      }}
+    >
+      {note}
+    </p>
+  ) : note ? (
+    <p className="mt-1 truncate text-[12px] leading-[17px] text-faint" title={note}>
+      {note}
+    </p>
+  ) : null;
   const leadingSlot = selectable
     ? (selected
         ? <SquareCheck className="h-3.5 w-3.5 text-accent" />
@@ -249,11 +308,7 @@ function WorkspaceSkillCard({
           <p className="truncate text-[13px] text-muted">
             {description || "-"}
           </p>
-          {note && (
-            <p className="truncate text-[11px] leading-[16px] text-faint" title={note}>
-              {note}
-            </p>
-          )}
+          {noteBlock}
         </div>
         {tags.length > 0 && (
           <div className="flex shrink-0 items-center gap-1.5">
@@ -324,11 +379,7 @@ function WorkspaceSkillCard({
         <p className="truncate text-[13px] leading-[18px] text-muted">
           {description || "-"}
         </p>
-        {note && (
-          <p className="mt-1 truncate text-[12px] leading-[17px] text-faint" title={note}>
-            {note}
-          </p>
-        )}
+        {noteBlock}
         {tags.length > 0 && (
           <div className="mt-2 flex flex-wrap items-center gap-1">
             {tags.map((tag) => (
@@ -389,7 +440,7 @@ export function WorkspaceView({ config }: { config: WorkspaceConfig }) {
   const { agentKey } = useParams<{ agentKey?: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { tools, managedSkills, presets, refreshManagedSkills, refreshTools } = useApp();
+  const { tools, managedSkills, presets, refreshManagedSkills, refreshTools, detailsDismissVersion } = useApp();
 
   const [viewMode, setViewMode] = useSkillViewMode();
   const [search, setSearch] = useState("");
@@ -423,6 +474,12 @@ export function WorkspaceView({ config }: { config: WorkspaceConfig }) {
     setLocalDescTranslated(null);
     setLocalDocTranslated(null);
   }, [localDetailSkill]);
+
+  // Sidebar navigation / route changes dismiss the local detail sheet too —
+  // including a click on the current agent's own sidebar entry.
+  useEffect(() => {
+    setLocalDetailSkill(null);
+  }, [detailsDismissVersion]);
 
   const handleTranslateLocalDesc = async () => {
     if (!localDetailSkill?.description) return;
@@ -833,6 +890,25 @@ export function WorkspaceView({ config }: { config: WorkspaceConfig }) {
       }
     },
     [currentTool, loadLocalSkills, t]
+  );
+
+  // Inline card-note save: synced copies write the central note, agent-local
+  // skills write the path-keyed local note.
+  const handleWorkspaceNoteSave = useCallback(
+    async (skill: ProjectSkill, text: string) => {
+      if (skill.center_skill_id) {
+        await api.setSkillNotes(skill.center_skill_id, text);
+      } else {
+        await api.setLocalSkillNotes(skill.agent, skill.relative_path, text);
+      }
+      await Promise.all([loadLocalSkills(), refreshManagedSkills()]);
+      setLocalDetailSkill((prev) =>
+        prev && prev.relative_path === skill.relative_path
+          ? { ...prev, notes: text || null }
+          : prev
+      );
+    },
+    [loadLocalSkills, refreshManagedSkills]
   );
 
   const openLocalDetail = useCallback(
@@ -1317,6 +1393,7 @@ export function WorkspaceView({ config }: { config: WorkspaceConfig }) {
                 title={skill.name}
                 description={skill.description || skill.relative_path}
                 note={skill.notes}
+                onNoteSave={(text) => handleWorkspaceNoteSave(skill, text)}
                 tags={skill.tags.map((tag) => ({ label: tag, className: getTagColor(tag, allLocalTags) }))}
                 status={statusMeta}
                 fileCount={skill.files.length}

@@ -1,6 +1,7 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { useEffect } from "react";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { Toaster } from "sonner";
-import { AppProvider } from "./context/AppContext";
+import { AppProvider, useApp } from "./context/AppContext";
 import { ThemeProvider, useThemeContext } from "./context/ThemeContext";
 import { HelpDialog } from "./components/HelpDialog";
 import { CloseActionGuard } from "./components/CloseActionGuard";
@@ -32,11 +33,24 @@ function ThemedToaster() {
   );
 }
 
+/// Lives inside the Router (AppProvider itself sits outside it), so it is the
+/// one place allowed to translate route changes into "close every open skill
+/// detail" — covering cross-page navigation while a detail sheet is open.
+function DetailDismissBridge() {
+  const location = useLocation();
+  const { dismissAllSkillDetails } = useApp();
+  useEffect(() => {
+    dismissAllSkillDetails();
+  }, [location.pathname, dismissAllSkillDetails]);
+  return null;
+}
+
 function App() {
   return (
     <ThemeProvider>
       <AppProvider>
         <BrowserRouter>
+          <DetailDismissBridge />
           <Routes>
             <Route element={<Layout />}>
               <Route path="/" element={<Dashboard />} />

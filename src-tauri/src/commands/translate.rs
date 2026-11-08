@@ -2,6 +2,8 @@ use std::sync::Arc;
 use std::time::Duration;
 use tauri::State;
 
+use sha2::{Digest, Sha256};
+
 use crate::commands::agent_workspace::{
     collect_installed_local_skills, find_center_match,
 };
@@ -72,9 +74,12 @@ fn display_description(central_path: &str, fallback: Option<&str>) -> Option<Str
 }
 
 /// Translate a skill's English description / document into Chinese through the
-/// Baidu Translate API configured in Settings. The free tier is paced at one
-/// request per second inside [`translate_api`], so this runs on the blocking
-/// pool like every other network command.
+/// Baidu Translate API configured in Settings. Results are cached by the
+/// SHA-256 of the source text: repeated clicks on unchanged content are free
+/// and instant, and any content update produces a new hash (and a fresh
+/// translation). The free tier is paced at one request per second inside
+/// [`translate_api`], so this runs on the blocking pool like every other
+/// network command.
 #[tauri::command]
 pub async fn translate_text(
     text: String,
@@ -82,9 +87,13 @@ pub async fn translate_text(
 ) -> Result<String, AppError> {
     let store = store.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
+        let source_hash = hex::encode(Sha256::digest(text.as_bytes()));
+        if let Ok(Some(cached)) = store.get_cached_translation(&source_hash) {
+            return Ok(cached);
+        }
         let (app_id, api_key) = baidu_credentials(&store)?;
         let proxy_url = store.proxy_url();
-        translate_api::translate_text(
+        let translated = translate_api::translate_text(
             &text,
             "auto",
             "zh",
@@ -92,7 +101,11 @@ pub async fn translate_text(
             &api_key,
             proxy_url.as_deref(),
         )
-        .map_err(AppError::network)
+        .map_err(AppError::network)?;
+        store
+            .save_cached_translation(&source_hash, &translated)
+            .map_err(AppError::db)?;
+        Ok(translated)
     })
     .await?
 }

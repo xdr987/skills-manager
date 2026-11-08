@@ -207,6 +207,9 @@ export function MySkills() {
   const [gitStatus, setGitStatus] = useState<GitBackupStatus | null>(null);
   const [gitRemoteConfig, setGitRemoteConfig] = useState("");
   const [tagEditSkillId, setTagEditSkillId] = useState<string | null>(null);
+  const [noteEditSkillId, setNoteEditSkillId] = useState<string | null>(null);
+  const [noteDraft, setNoteDraft] = useState("");
+  const [noteSaving, setNoteSaving] = useState(false);
   const [menuSkillId, setMenuSkillId] = useState<string | null>(null);
   const [skillToDelete, setSkillToDelete] = useState<ManagedSkill | null>(null);
   const [tagInput, setTagInput] = useState("");
@@ -1025,6 +1028,26 @@ export function MySkills() {
     }
   };
 
+  // Inline card-note edit: Enter or blur commits (when changed), Esc cancels.
+  const handleSaveCardNote = async (skill: ManagedSkill) => {
+    if (noteEditSkillId !== skill.id) return;
+    const trimmed = noteDraft.trim();
+    if (trimmed === (skill.notes ?? "").trim()) {
+      setNoteEditSkillId(null);
+      return;
+    }
+    setNoteSaving(true);
+    try {
+      await api.setSkillNotes(skill.id, trimmed);
+      setNoteEditSkillId(null);
+      await refreshManagedSkills();
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, t("common.error")));
+    } finally {
+      setNoteSaving(false);
+    }
+  };
+
   // Replace `oldTag` with `newTag` in the active filter set so the current
   // filtering survives a rename/delete.
   const replaceTagInFilters = (oldTag: string, newTag?: string) =>
@@ -1738,14 +1761,39 @@ export function MySkills() {
                     <p className="text-[13px] leading-[18px] text-muted truncate">
                       {skill.description || "—"}
                     </p>
-                    {skill.notes && (
+                    {noteEditSkillId === skill.id ? (
+                      <textarea
+                        value={noteDraft}
+                        onChange={(e) => setNoteDraft(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            void handleSaveCardNote(skill);
+                          }
+                          if (e.key === "Escape") {
+                            setNoteEditSkillId(null);
+                          }
+                        }}
+                        onBlur={() => void handleSaveCardNote(skill)}
+                        onClick={(e) => e.stopPropagation()}
+                        rows={2}
+                        autoFocus
+                        disabled={noteSaving}
+                        className="mt-1 w-full resize-y rounded-md border border-accent/60 bg-background px-1.5 py-1 text-[12px] leading-[17px] text-secondary outline-none"
+                      />
+                    ) : skill.notes ? (
                       <p
-                        className="mt-1 truncate text-[12px] leading-[17px] text-faint"
-                        title={skill.notes}
+                        className="mt-1 cursor-text truncate text-[12px] leading-[17px] text-faint transition-colors hover:text-secondary"
+                        title={`${skill.notes}（点击编辑）`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setNoteDraft(skill.notes ?? "");
+                          setNoteEditSkillId(skill.id);
+                        }}
                       >
                         {skill.notes}
                       </p>
-                    )}
+                    ) : null}
                     {((badge && !showUpdatePill) || conflictIds.has(skill.id)) && (
                       <div className="mt-2 flex flex-wrap items-center gap-1.5">
                         {conflictIds.has(skill.id) && (

@@ -36,6 +36,11 @@ interface AppState {
   closeHelp: () => void;
   openSkillDetailById: (skillId: string) => void;
   closeSkillDetail: () => void;
+  /** Bumped whenever every open skill detail (context-tracked or
+   *  component-local, e.g. the agent workspace sheet) should close. Sidebar
+   *  navigation and route changes fire it; local-state details subscribe. */
+  detailsDismissVersion: number;
+  dismissAllSkillDetails: () => void;
 }
 
 const VIEWED_PRESET_LS_KEY = "skills-manager.viewedPresetId";
@@ -62,6 +67,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [appError, setAppError] = useState<string | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [detailSkillId, setDetailSkillId] = useState<string | null>(null);
+  const [detailsDismissVersion, setDetailsDismissVersion] = useState(0);
   const [appUpdate, setAppUpdate] = useState<AppUpdateInfo | null>(null);
   const autoCheckInFlightRef = useRef(false);
   const appUpdateCheckedRef = useRef(false);
@@ -463,6 +469,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         closeHelp: () => setHelpOpen(false),
         openSkillDetailById: (skillId: string) => setDetailSkillId(skillId),
         closeSkillDetail: () => setDetailSkillId(null),
+      detailsDismissVersion,
+      dismissAllSkillDetails: () => {
+        setDetailSkillId(null);
+        setDetailsDismissVersion((version) => version + 1);
+      },
       }}
     >
       {children}

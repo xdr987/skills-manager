@@ -133,7 +133,7 @@ export function ProjectDetail() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { label: revealLabel, reveal: revealProjectFolder } = useRevealProjectFolder();
-  const { projects, presets, managedSkills, refreshManagedSkills, refreshPresets, refreshProjects } = useApp();
+  const { projects, presets, managedSkills, refreshManagedSkills, refreshPresets, refreshProjects, detailsDismissVersion } = useApp();
   const [skills, setSkills] = useState<ProjectSkill[]>([]);
   const [projectAgentTargets, setProjectAgentTargets] = useState<ProjectAgentTarget[]>([]);
   const [loading, setLoading] = useState(true);
@@ -142,6 +142,10 @@ export function ProjectDetail() {
   const [search, setSearch] = useState("");
   const [tagFilters, setTagFilters] = useState<Set<string>>(new Set());
   const [detailSkill, setDetailSkill] = useState<ProjectSkillGroup | null>(null);
+  // Sidebar navigation and route changes dismiss the open skill detail.
+  useEffect(() => {
+    setDetailSkill(null);
+  }, [detailsDismissVersion]);
   const [docContent, setDocContent] = useState<string | null>(null);
   const [docLoading, setDocLoading] = useState(false);
   const [centerDocContent, setCenterDocContent] = useState<string | null>(null);

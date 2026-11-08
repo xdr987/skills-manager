@@ -1371,6 +1371,27 @@ impl SkillStore {
         Ok(())
     }
 
+    // ── Translation cache ──
+
+    /// Cached translation for a source-text hash, if any. Keyed by content, so
+    /// unchanged text always hits while any update misses naturally.
+    pub fn get_cached_translation(&self, source_hash: &str) -> Result<Option<String>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt =
+            conn.prepare("SELECT translated FROM translation_cache WHERE source_hash = ?1")?;
+        let mut rows = stmt.query_map(params![source_hash], |row| row.get::<_, String>(0))?;
+        Ok(rows.next().transpose()?)
+    }
+
+    pub fn save_cached_translation(&self, source_hash: &str, translated: &str) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "INSERT OR REPLACE INTO translation_cache (source_hash, translated, updated_at) VALUES (?1, ?2, ?3)",
+            params![source_hash, translated, chrono::Utc::now().timestamp_millis()],
+        )?;
+        Ok(())
+    }
+
     /// Globally rename a tag across every skill that carries it. Returns the
     /// ids of the affected skills so the caller can refresh their metadata.
     /// If a skill already has `new`, the rows are merged (no duplicate) thanks

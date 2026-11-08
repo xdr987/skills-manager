@@ -49,7 +49,7 @@ export function Sidebar() {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
-  const { presets, viewedPreset, setViewedPresetId, closeSkillDetail, refreshPresets, refreshManagedSkills, projects, refreshProjects, tools, managedSkills, appUpdate } = useApp();
+  const { presets, viewedPreset, setViewedPresetId, closeSkillDetail, dismissAllSkillDetails, refreshPresets, refreshManagedSkills, projects, refreshProjects, tools, managedSkills, appUpdate } = useApp();
   const [showCreate, setShowCreate] = useState(false);
   const [showAddProject, setShowAddProject] = useState(false);
   const [renameTarget, setRenameTarget] = useState<{ id: string; name: string; icon?: string | null; description?: string | null } | null>(null);
@@ -277,6 +277,7 @@ export function Sidebar() {
               return (
                 <Link
                   to={group.basePath}
+                  onClick={dismissAllSkillDetails}
                   className={cn(
                     "mb-0.5 flex items-center gap-2 px-2.5 py-[7px] rounded-md text-[14px] leading-5 transition-colors outline-none",
                     isActive
@@ -322,7 +323,10 @@ export function Sidebar() {
                                 )}
                               >
                                 <button
-                                  onClick={() => navigate(`${group.basePath}/${tool.key}`)}
+                                  onClick={() => {
+                                    dismissAllSkillDetails();
+                                    navigate(`${group.basePath}/${tool.key}`);
+                                  }}
                                   className={cn(
                                     "flex min-w-0 flex-1 items-center gap-2 px-2.5 py-[7px] text-left text-[14px] leading-5 outline-none",
                                     isActive ? "font-medium text-primary" : "text-tertiary group-hover:text-secondary"
@@ -402,6 +406,7 @@ export function Sidebar() {
               <Link
                 key={item.path}
                 to={item.path}
+                onClick={dismissAllSkillDetails}
                 className={cn(
                   "flex items-center gap-2.5 px-2.5 py-[7px] rounded-md text-[14px] leading-5 font-medium transition-colors outline-none",
                   isActive
@@ -620,7 +625,10 @@ export function Sidebar() {
                                 )}
                               >
                                 <button
-                                  onClick={() => navigate(`/project/${project.id}`)}
+                                  onClick={() => {
+                                    dismissAllSkillDetails();
+                                    navigate(`/project/${project.id}`);
+                                  }}
                                   className={cn(
                                     "flex min-w-0 flex-1 items-center gap-2 px-2.5 py-[7px] text-left text-[14px] leading-5 outline-none",
                                     isActive ? "font-medium text-primary" : "text-tertiary group-hover:text-secondary"

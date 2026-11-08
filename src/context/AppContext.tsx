@@ -68,6 +68,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [helpOpen, setHelpOpen] = useState(false);
   const [detailSkillId, setDetailSkillId] = useState<string | null>(null);
   const [detailsDismissVersion, setDetailsDismissVersion] = useState(0);
+  // Stable identity: the Router bridge depends on this function, and an
+  // inline closure in the context value would re-trigger its effect on every
+  // render (state bump → re-render → new closure → effect → bump → loop).
+  const dismissAllSkillDetails = useCallback(() => {
+    setDetailSkillId(null);
+    setDetailsDismissVersion((version) => version + 1);
+  }, []);
   const [appUpdate, setAppUpdate] = useState<AppUpdateInfo | null>(null);
   const autoCheckInFlightRef = useRef(false);
   const appUpdateCheckedRef = useRef(false);
@@ -470,10 +477,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         openSkillDetailById: (skillId: string) => setDetailSkillId(skillId),
         closeSkillDetail: () => setDetailSkillId(null),
       detailsDismissVersion,
-      dismissAllSkillDetails: () => {
-        setDetailSkillId(null);
-        setDetailsDismissVersion((version) => version + 1);
-      },
+      dismissAllSkillDetails,
       }}
     >
       {children}

@@ -380,7 +380,10 @@ jobs:
 
   verify-updater-assets:
     needs: build
-    if: startsWith(github.ref, 'refs/tags/')
+    # The CN build ships `createUpdaterArtifacts: false` (no signing key on the
+    # cloud runner), so there is no updater metadata to validate. The job stays
+    # defined for a future signed build but never runs here.
+    if: false
     runs-on: ubuntu-latest
     name: Verify updater assets
     steps:

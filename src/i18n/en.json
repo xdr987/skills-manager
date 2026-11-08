@@ -427,7 +427,7 @@
       "docButton": "Translate document",
       "translating": "Translating...",
       "original": "Original",
-      "notConfigured": "Baidu Translate API is not configured. Set the APP ID and key in Settings."
+      "notConfigured": "Required API is not configured: set up AI Summary (LLM) in Settings for notes, and Baidu Translate for translation"
     },
     "tags": {
       "filter": "Tags",
@@ -709,12 +709,21 @@
     "proxyUrlSaved": "Proxy settings saved",
     "proxyUrlInvalid": "Proxy URL must start with http://, https://, or socks5://",
     "baiduTranslate": {
-      "title": "Baidu Translate API",
+      "title": "Baidu Translate API (for translation)",
       "credentials": "APP ID and secret key",
       "desc": "Apply for free at the Baidu Translate open platform (fanyi-api.baidu.com). Used for one-click translation of skill descriptions and documents.",
       "appIdPlaceholder": "Baidu Translate APP ID",
       "apiKeyPlaceholder": "Baidu Translate secret key",
       "saved": "Baidu Translate settings saved"
+    },
+    "aiSummary": {
+      "title": "AI Summary (for default notes)",
+      "credentials": "Base URL / API Key / Model",
+      "desc": "Any OpenAI-compatible LLM endpoint: Zhipu https://open.bigmodel.cn/api/paas/v4 (glm-4-flash free), Kimi https://api.moonshot.cn/v1, DeepSeek https://api.deepseek.com. Condenses skill descriptions into a few-word Chinese note.",
+      "baseUrlPlaceholder": "Base URL, e.g. https://open.bigmodel.cn/api/paas/v4",
+      "apiKeyPlaceholder": "LLM API Key",
+      "modelPlaceholder": "Model, e.g. glm-4-flash",
+      "saved": "AI summary settings saved"
     },
     "autoUpdate": {
       "title": "Skill Auto-Update",

@@ -421,7 +421,7 @@
       "docButton": "문서 번역",
       "translating": "번역 중...",
       "original": "원문",
-      "notConfigured": "바이두 번역 API가 설정되지 않았습니다. 설정 페이지에서 APP ID와 키를 입력하세요."
+      "notConfigured": "필요한 API가 설정되지 않았습니다: 메모용 AI 요약(LLM)과 번역용 바이두 번역을 설정 페이지에서 입력하세요"
     },
     "tags": {
       "filter": "태그",
@@ -701,12 +701,21 @@
     "proxyUrlSaved": "프록시 설정을 저장했습니다",
     "proxyUrlInvalid": "프록시 URL은 http://, https://, socks5:// 중 하나로 시작해야 합니다",
     "baiduTranslate": {
-      "title": "바이두 번역 API",
+      "title": "바이두 번역 API (번역용)",
       "credentials": "APP ID 및 시크릿 키",
       "desc": "바이두 번역 오픈 플랫폼(fanyi-api.baidu.com)에서 무료로 신청할 수 있습니다. 스킬 설명과 문서의 원클릭 번역에 사용됩니다.",
       "appIdPlaceholder": "바이두 번역 APP ID",
       "apiKeyPlaceholder": "바이두 번역 시크릿 키",
       "saved": "바이두 번역 설정이 저장되었습니다"
+    },
+    "aiSummary": {
+      "title": "AI 요약 (기본 메모용)",
+      "credentials": "Base URL / API Key / 모델",
+      "desc": "OpenAI 호환 LLM 엔드포인트: 지푸 https://open.bigmodel.cn/api/paas/v4 (glm-4-flash 무료), Kimi https://api.moonshot.cn/v1, DeepSeek https://api.deepseek.com. 스킬 설명을 몇 단어의 중국어 메모로 요약합니다.",
+      "baseUrlPlaceholder": "Base URL, 예: https://open.bigmodel.cn/api/paas/v4",
+      "apiKeyPlaceholder": "LLM API Key",
+      "modelPlaceholder": "모델, 예: glm-4-flash",
+      "saved": "AI 요약 설정이 저장되었습니다"
     },
     "autoUpdate": {
       "title": "스킬 자동 업데이트",

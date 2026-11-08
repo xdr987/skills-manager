@@ -424,7 +424,7 @@
       "docButton": "Traducir documento",
       "translating": "Traduciendo...",
       "original": "Original",
-      "notConfigured": "La API de Baidu Translate no está configurada. Introduce el APP ID y la clave en Ajustes."
+      "notConfigured": "Falta configurar la API necesaria: configura el Resumen con IA (LLM) en Ajustes para las notas y Baidu Translate para traducir"
     },
     "tags": {
       "addTag": "Agregar etiqueta...",
@@ -593,12 +593,21 @@
     "agentNamePlaceholder": "Mi agente",
     "agentsSummary": "{{detected}} detectados, {{enabled}} habilitados, {{custom}} personalizados",
     "baiduTranslate": {
-      "title": "API de Baidu Translate",
+      "title": "API de Baidu Translate (para traducir)",
       "credentials": "APP ID y clave secreta",
       "desc": "Solicítala gratis en la plataforma abierta de Baidu Translate (fanyi-api.baidu.com). Se usa para la traducción con un clic de descripciones y documentos de skills.",
       "appIdPlaceholder": "APP ID de Baidu Translate",
       "apiKeyPlaceholder": "Clave secreta de Baidu Translate",
       "saved": "Configuración de Baidu Translate guardada"
+    },
+    "aiSummary": {
+      "title": "Resumen con IA (para notas predeterminadas)",
+      "credentials": "URL base / API Key / Modelo",
+      "desc": "Cualquier endpoint LLM compatible con OpenAI: Zhipu https://open.bigmodel.cn/api/paas/v4 (glm-4-flash gratis), Kimi https://api.moonshot.cn/v1, DeepSeek https://api.deepseek.com. Condensa la descripción de la skill en una nota china de pocas palabras.",
+      "baseUrlPlaceholder": "URL base, p. ej. https://open.bigmodel.cn/api/paas/v4",
+      "apiKeyPlaceholder": "API Key del LLM",
+      "modelPlaceholder": "Modelo, p. ej. glm-4-flash",
+      "saved": "Configuración de resumen con IA guardada"
     },
     "autoUpdate": {
       "applyDesc": "Cuando está activado, las actualizaciones se descargan y aplican automáticamente; cuando está desactivado, solo se marcan en la Biblioteca para actualización manual.",

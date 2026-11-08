@@ -421,7 +421,7 @@
       "docButton": "翻譯全文",
       "translating": "翻譯中...",
       "original": "原文",
-      "notConfigured": "尚未設定百度翻譯 API，請到設定頁填寫 APP ID 和金鑰"
+      "notConfigured": "尚未設定所需的 API：摘要需在設定頁填寫 AI 摘要（大模型），翻譯需填寫百度翻譯"
     },
     "tags": {
       "filter": "標籤",
@@ -701,12 +701,21 @@
     "proxyUrlSaved": "代理設定已儲存",
     "proxyUrlInvalid": "代理位址必須以 http://、https:// 或 socks5:// 開頭",
     "baiduTranslate": {
-      "title": "百度翻譯 API",
+      "title": "百度翻譯 API（用於翻譯）",
       "credentials": "APP ID 和金鑰",
       "desc": "在百度翻譯開放平台（fanyi-api.baidu.com）免費申請，用於一鍵翻譯技能簡介和文件。",
       "appIdPlaceholder": "百度翻譯 APP ID",
       "apiKeyPlaceholder": "百度翻譯金鑰",
       "saved": "百度翻譯設定已儲存"
+    },
+    "aiSummary": {
+      "title": "AI 摘要（用於預設備註）",
+      "credentials": "介面位址 / API Key / 模型",
+      "desc": "相容 OpenAI 格式的大模型介面：智譜 https://open.bigmodel.cn/api/paas/v4（glm-4-flash 免費）、Kimi https://api.moonshot.cn/v1、DeepSeek https://api.deepseek.com。把技能簡介概括成幾個字的中文備註。",
+      "baseUrlPlaceholder": "介面位址，如 https://open.bigmodel.cn/api/paas/v4",
+      "apiKeyPlaceholder": "大模型 API Key",
+      "modelPlaceholder": "模型名，如 glm-4-flash",
+      "saved": "AI 摘要設定已儲存"
     },
     "autoUpdate": {
       "title": "Skill 自動更新",

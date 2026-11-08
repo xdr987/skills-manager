@@ -46,6 +46,13 @@ interface WorkspaceSkillCardTag {
   className: string;
 }
 
+/** Toast text for a failed translate/summarize call, mapping the backend's
+ *  "not configured" sentinel to a localized hint. */
+const translateErrorHint = (error: unknown, t: (key: string) => string): string =>
+  getErrorKind(error) === "invalid_input"
+    ? t("mySkills.translate.notConfigured")
+    : getErrorMessage(error, t("common.error"));
+
 interface WorkspaceSkillCardStatus {
   label: string;
   className: string;
@@ -398,6 +405,11 @@ export function WorkspaceView({ config }: { config: WorkspaceConfig }) {
   const [localDocLoading, setLocalDocLoading] = useState(false);
   const [localCenterDocLoading, setLocalCenterDocLoading] = useState(false);
   const [localContentTab, setLocalContentTab] = useState<"local" | "diff" | "center">("local");
+  // One-click translations inside the local detail sheet.
+  const [localDescTranslated, setLocalDescTranslated] = useState<string | null>(null);
+  const [localDescTranslating, setLocalDescTranslating] = useState(false);
+  const [localDocTranslated, setLocalDocTranslated] = useState<string | null>(null);
+  const [localDocTranslating, setLocalDocTranslating] = useState(false);
   const [uploadConfirmSkill, setUploadConfirmSkill] = useState<ProjectSkill | null>(null);
   const [pullConfirmSkill, setPullConfirmSkill] = useState<ProjectSkill | null>(null);
   const [deleteLocalConfirmSkill, setDeleteLocalConfirmSkill] = useState<ProjectSkill | null>(null);
@@ -405,6 +417,36 @@ export function WorkspaceView({ config }: { config: WorkspaceConfig }) {
   const [batchDeleteConfirm, setBatchDeleteConfirm] = useState(false);
   const [batchRunning, setBatchRunning] = useState(false);
   const localDetailRequestRef = useRef(0);
+
+  // A different skill in the sheet starts with clean translation state.
+  useEffect(() => {
+    setLocalDescTranslated(null);
+    setLocalDocTranslated(null);
+  }, [localDetailSkill]);
+
+  const handleTranslateLocalDesc = async () => {
+    if (!localDetailSkill?.description) return;
+    setLocalDescTranslating(true);
+    try {
+      setLocalDescTranslated(await api.translateText(localDetailSkill.description));
+    } catch (error: unknown) {
+      toast.error(translateErrorHint(error, t));
+    } finally {
+      setLocalDescTranslating(false);
+    }
+  };
+
+  const handleTranslateLocalDoc = async () => {
+    if (!localDocContent) return;
+    setLocalDocTranslating(true);
+    try {
+      setLocalDocTranslated(await api.translateText(localDocContent));
+    } catch (error: unknown) {
+      toast.error(translateErrorHint(error, t));
+    } finally {
+      setLocalDocTranslating(false);
+    }
+  };
 
   // Cross-category redirect: a deep link like /global-workspace/openclaw should
   // land on /lobster-workspace/openclaw. Compute it before any filtering so a
@@ -1309,7 +1351,35 @@ export function WorkspaceView({ config }: { config: WorkspaceConfig }) {
       <DetailSheet
         open={!!localDetailSkill}
         title={localDetailSkill?.name ?? ""}
-        description={localDetailSkill?.description}
+        description={
+          localDetailSkill?.description ? (
+            <div className="flex items-start gap-2">
+              <p className="line-clamp-3 min-w-0 flex-1">
+                {localDescTranslated ?? localDetailSkill.description}
+              </p>
+              <button
+                type="button"
+                onClick={() =>
+                  localDescTranslated
+                    ? setLocalDescTranslated(null)
+                    : void handleTranslateLocalDesc()
+                }
+                disabled={localDescTranslating}
+                title={t("mySkills.translate.buttonTitle")}
+                className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border-subtle bg-surface px-2 py-1 text-[12px] font-medium text-muted transition-colors hover:text-secondary disabled:opacity-60"
+              >
+                {localDescTranslating ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Languages className="h-3 w-3" />
+                )}
+                {localDescTranslated
+                  ? t("mySkills.translate.original")
+                  : t("mySkills.translate.button")}
+              </button>
+            </div>
+          ) : undefined
+        }
         meta={
           localDetailSkill ? (
             <div className="flex flex-wrap items-center gap-2">
@@ -1362,6 +1432,37 @@ export function WorkspaceView({ config }: { config: WorkspaceConfig }) {
           </div>
         )}
 
+        {localDocContent && localContentTab === "local" && (
+          <div className="mb-3 flex justify-end">
+            <button
+              type="button"
+              onClick={() =>
+                localDocTranslated
+                  ? setLocalDocTranslated(null)
+                  : void handleTranslateLocalDoc()
+              }
+              disabled={localDocTranslating}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium transition-colors disabled:opacity-60",
+                localDocTranslated
+                  ? "bg-surface-hover text-muted hover:text-secondary"
+                  : "bg-accent text-white"
+              )}
+            >
+              {localDocTranslating ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Languages className="h-3 w-3" />
+              )}
+              {localDocTranslating
+                ? t("mySkills.translate.translating")
+                : localDocTranslated
+                  ? t("mySkills.translate.original")
+                  : t("mySkills.translate.docButton")}
+            </button>
+          </div>
+        )}
+
         {localDocLoading ? (
           <div className="mt-12 text-center text-[13px] text-muted">{t("common.loading")}</div>
         ) : localContentTab === "diff" ? (
@@ -1381,7 +1482,7 @@ export function WorkspaceView({ config }: { config: WorkspaceConfig }) {
             <div className="mt-12 text-center text-[13px] text-muted">{t("mySkills.sourceDiffUnavailable")}</div>
           )
         ) : localDocContent ? (
-          <SkillMarkdown content={localDocContent} />
+          <SkillMarkdown content={localDocTranslated ?? localDocContent} />
         ) : (
           <div className="mt-12 text-center text-[13px] text-muted">{t("common.documentMissing")}</div>
         )}

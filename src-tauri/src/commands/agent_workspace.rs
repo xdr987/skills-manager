@@ -49,6 +49,21 @@ fn read_agent_local_skills(
     )
 }
 
+/// Enumerate the agent-local skills of every enabled+installed tool, paired
+/// with its adapter. Tools without local skills are skipped.
+pub(crate) fn collect_installed_local_skills(
+    store: &SkillStore,
+) -> Vec<(tool_adapters::ToolAdapter, Vec<project_scanner::ProjectSkillInfo>)> {
+    tool_adapters::enabled_installed_adapters(store)
+        .into_iter()
+        .map(|adapter| {
+            let skills = read_agent_local_skills(&adapter);
+            (adapter, skills)
+        })
+        .filter(|(_, skills)| !skills.is_empty())
+        .collect()
+}
+
 fn enrich_center_status(
     mut skills: Vec<project_scanner::ProjectSkillInfo>,
     all_managed: &[SkillRecord],
@@ -121,6 +136,14 @@ fn target_matches_skill_path(
 }
 
 fn find_verified_center_match<'a>(
+    skill: &project_scanner::ProjectSkillInfo,
+    all_managed: &'a [SkillRecord],
+    all_targets: &[SkillTargetRecord],
+) -> Option<&'a SkillRecord> {
+    find_center_match(skill, all_managed, all_targets)
+}
+
+pub(crate) fn find_center_match<'a>(
     skill: &project_scanner::ProjectSkillInfo,
     all_managed: &'a [SkillRecord],
     all_targets: &[SkillTargetRecord],

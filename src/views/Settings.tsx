@@ -184,6 +184,10 @@ export function Settings() {
   const [baiduAppIdInput, setBaiduAppIdInput] = useState("");
   const [baiduApiKeyInput, setBaiduApiKeyInput] = useState("");
   const [baiduSaving, setBaiduSaving] = useState(false);
+  const [llmBaseUrlInput, setLlmBaseUrlInput] = useState("");
+  const [llmApiKeyInput, setLlmApiKeyInput] = useState("");
+  const [llmModelInput, setLlmModelInput] = useState("");
+  const [llmSaving, setLlmSaving] = useState(false);
   const [textSize, setTextSize] = useState("default");
   const [autoUpdateInterval, setAutoUpdateInterval] = useState("off");
   const [autoUpdateApply, setAutoUpdateApply] = useState("off");
@@ -330,6 +334,9 @@ export function Settings() {
     api.getSettings("proxy_url").then((v) => { setProxyInput(v ?? ""); });
     api.getSettings("baidu_app_id").then((v) => { setBaiduAppIdInput(v ?? ""); });
     api.getSettings("baidu_api_key").then((v) => { setBaiduApiKeyInput(v ?? ""); });
+    api.getSettings("llm_base_url").then((v) => { setLlmBaseUrlInput(v ?? ""); });
+    api.getSettings("llm_api_key").then((v) => { setLlmApiKeyInput(v ?? ""); });
+    api.getSettings("llm_model").then((v) => { setLlmModelInput(v ?? ""); });
     api.getSettings("close_action").then((v) => { setCloseAction(v ?? ""); });
     api.getSettings("show_tray_icon").then((v) => {
       const normalized = (v ?? "true").trim().toLowerCase();
@@ -787,6 +794,20 @@ export function Settings() {
       toast.error(t("common.error"));
     } finally {
       setBaiduSaving(false);
+    }
+  };
+
+  const handleSaveLlm = async () => {
+    setLlmSaving(true);
+    try {
+      await api.setSettings("llm_base_url", llmBaseUrlInput.trim());
+      await api.setSettings("llm_api_key", llmApiKeyInput.trim());
+      await api.setSettings("llm_model", llmModelInput.trim());
+      toast.success(t("settings.aiSummary.saved"));
+    } catch {
+      toast.error(t("common.error"));
+    } finally {
+      setLlmSaving(false);
     }
   };
 
@@ -1634,6 +1655,70 @@ export function Settings() {
                   className={`${actionButtonClass} bg-surface-hover hover:bg-surface-active text-tertiary border-border`}
                 >
                   {baiduSaving ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Languages className="w-3 h-3" />
+                  )}
+                  {t("common.save")}
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* AI summary (LLM) */}
+        <section>
+          <h2 className="app-section-title mb-3">
+            {t("settings.aiSummary.title")}
+          </h2>
+          <div className="app-panel overflow-hidden divide-y divide-border-faint">
+            <div className="px-4 py-3">
+              <h3 className="text-[14px] font-semibold text-primary">
+                {t("settings.aiSummary.credentials")}
+              </h3>
+              <p className="mt-0.5 mb-2 text-[12px] text-muted">
+                {t("settings.aiSummary.desc")}
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="text"
+                  value={llmBaseUrlInput}
+                  onChange={(e) => setLlmBaseUrlInput(e.target.value)}
+                  placeholder={t("settings.aiSummary.baseUrlPlaceholder")}
+                  className={`${fieldClass} min-w-0 flex-1 font-mono`}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                <input
+                  type="password"
+                  value={llmApiKeyInput}
+                  onChange={(e) => setLlmApiKeyInput(e.target.value)}
+                  placeholder={t("settings.aiSummary.apiKeyPlaceholder")}
+                  className={`${fieldClass} min-w-0 flex-1 font-mono`}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                <input
+                  type="text"
+                  value={llmModelInput}
+                  onChange={(e) => setLlmModelInput(e.target.value)}
+                  placeholder={t("settings.aiSummary.modelPlaceholder")}
+                  className={`${fieldClass} w-44 font-mono`}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                <button
+                  onClick={handleSaveLlm}
+                  disabled={llmSaving}
+                  className={`${actionButtonClass} bg-surface-hover hover:bg-surface-active text-tertiary border-border`}
+                >
+                  {llmSaving ? (
                     <Loader2 className="w-3 h-3 animate-spin" />
                   ) : (
                     <Languages className="w-3 h-3" />

@@ -182,6 +182,55 @@ jobs:
           fi
           echo "APPLE_API_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
 
+      - name: Restore NSIS toolset cache
+        if: matrix.platform == 'windows-latest'
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4
+        with:
+          path: ${{ env.LOCALAPPDATA }}\tauri
+          key: tauri-nsis-toolset-v1
+
+      # The tauri bundler downloads the NSIS toolset with a single attempt;
+      # GitHub's release CDN has been handing out 504s, killing whole 20-minute
+      # builds. Fetch both files here with retries + SHA1 verification and lay
+      # them out exactly where the bundler expects them, so it skips downloads.
+      - name: Pre-cache NSIS toolset (retry past flaky release CDN)
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $tauriDir = Join-Path $env:LOCALAPPDATA 'tauri'
+          $nsisDir = Join-Path $tauriDir 'NSIS'
+          if ((Test-Path (Join-Path $nsisDir 'makensis.exe')) -and (Test-Path (Join-Path $nsisDir 'Plugins\x86-unicode\additional\nsis_tauri_utils.dll'))) {
+            Write-Host 'NSIS toolset already cached.'
+            exit 0
+          }
+          function Get-FileWithRetry([string]$url, [string]$out, [string]$sha1) {
+            for ($attempt = 1; $attempt -le 6; $attempt++) {
+              try {
+                Invoke-WebRequest -Uri $url -OutFile $out -UseBasicParsing -ErrorAction Stop
+                $hash = (Get-FileHash -Path $out -Algorithm SHA1).Hash
+                if ($hash -ieq $sha1) { Write-Host "OK: $url"; return }
+                Write-Host "hash mismatch ($hash), retrying: $url"
+              } catch {
+                Write-Host "attempt ${attempt} failed: $($_.Exception.Message)"
+              }
+              Start-Sleep -Seconds (20 * $attempt)
+            }
+            throw "Failed to download $url with a matching hash after 6 attempts"
+          }
+          New-Item -ItemType Directory -Force -Path $tauriDir | Out-Null
+          $zip = Join-Path $env:RUNNER_TEMP 'nsis-3.11.zip'
+          Get-FileWithRetry 'https://github.com/tauri-apps/binary-releases/releases/download/nsis-3.11/nsis-3.11.zip' $zip 'EF7FF767E5CBD9EDD22ADD3A32C9B8F4500BB10D'
+          Expand-Archive -Force -Path $zip -DestinationPath $tauriDir
+          # The archive carries a nsis-3.11/ root folder; tauri renames it to NSIS.
+          if ((Test-Path (Join-Path $tauriDir 'nsis-3.11')) -and -not (Test-Path $nsisDir)) {
+            Move-Item (Join-Path $tauriDir 'nsis-3.11') $nsisDir
+          }
+          $dll = Join-Path $nsisDir 'Plugins\x86-unicode\additional\nsis_tauri_utils.dll'
+          New-Item -ItemType Directory -Force -Path (Split-Path $dll) | Out-Null
+          Get-FileWithRetry 'https://github.com/tauri-apps/nsis-tauri-utils/releases/download/nsis_tauri_utils-v0.5.3/nsis_tauri_utils.dll' $dll '75197FEE3C6A814FE035788D1C34EAD39349B860'
+          Write-Host 'NSIS toolset pre-cached.'
+
       - name: Build with Tauri
         uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
         env:

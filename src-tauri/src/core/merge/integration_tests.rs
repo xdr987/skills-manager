@@ -124,6 +124,7 @@ impl Device {
             path_key: sync_metadata::path_key(path),
             enabled,
             tags: tags.iter().map(|s| s.to_string()).collect(),
+            notes: None,
             source: SourceMeta {
                 source_type: "import".to_string(),
                 ref_: None,

@@ -297,6 +297,7 @@ fn merge_components(b: &SkillObj, o: &SkillObj, t: &SkillObj) -> ComponentOutcom
                 enabled: attrs_src.enabled,
                 tags: attrs_src.tags.clone(),
                 source: attrs_src.source.clone(),
+                notes: attrs_src.notes.clone(),
             };
             let from_theirs = c_t || p_t || a_t;
             ComponentOutcome::Merged {
@@ -505,6 +506,7 @@ mod tests {
                 path_key: path_key(path),
                 enabled,
                 tags: tags.iter().map(|s| s.to_string()).collect(),
+                notes: None,
                 source: SourceMeta {
                     source_type: "import".to_string(),
                     ref_: None,

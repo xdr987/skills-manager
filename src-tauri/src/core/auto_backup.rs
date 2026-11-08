@@ -585,6 +585,7 @@ mod tests {
                 path_key: "alpha".to_string(),
                 enabled: true,
                 tags: vec![],
+                notes: None,
                 source: crate::core::sync_metadata::SourceMeta {
                     source_type: "import".to_string(),
                     ref_: None,

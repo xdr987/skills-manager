@@ -157,6 +157,7 @@ export function MySkills() {
   const navigate = useNavigate();
   const {
     viewedPreset,
+    activePreset,
     tools,
     managedSkills: skills,
     refreshPresets,
@@ -2146,6 +2147,7 @@ export function MySkills() {
         toolToggles={toolToggles}
         togglingTool={togglingToolKey}
         onToggleTool={handleToggleSkillTool}
+        isActivePreset={Boolean(viewedPreset && viewedPreset.id === activePreset?.id)}
         projects={projects}
         onProjectsChanged={refreshProjects}
         onNotesChanged={refreshManagedSkills}

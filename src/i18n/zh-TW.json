@@ -481,7 +481,9 @@
       "apply": "同步 {{count}} 項",
       "noAgents": "沒有已安裝並啟用的 Agent。",
       "allSynced": "選取的 Skill 都已同步到這個 Agent"
-    }
+    },
+    "agentTogglePendingSync": "待同步",
+    "agentTogglePendingSyncHint": "已在此 Preset 中啟用，但還沒有部署到這個 Agent。點擊即部署。"
   },
   "install": {
     "title": "安裝 Skills",
@@ -1165,5 +1167,15 @@
       "deletedLocalBatch": "已刪除 {{count}} 個本機 Skill",
       "deleteLocalBatchFailed": "{{count}} 個本機 Skill 刪除失敗"
     }
+  },
+  "errorBoundary": {
+    "title": "出錯了",
+    "description": "視窗遇到了意外錯誤，重新載入即可繼續。如果反覆出現，請把下面的錯誤訊息複製到 GitHub issue 裡。",
+    "copy": "複製錯誤訊息",
+    "copied": "已複製",
+    "exportLogs": "匯出日誌",
+    "exportLogsDone": "日誌已儲存到 {{path}}",
+    "exportLogsFailed": "匯出日誌失敗。",
+    "reload": "重新載入"
   }
 }

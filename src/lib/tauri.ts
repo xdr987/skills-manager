@@ -58,6 +58,7 @@ export interface SkillToolToggle {
   installed: boolean;
   globally_enabled: boolean;
   enabled: boolean;
+  deployed: boolean;
 }
 
 export interface SkillDocument {

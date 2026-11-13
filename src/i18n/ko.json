@@ -481,7 +481,9 @@
       "apply": "{{count}}개 동기화",
       "noAgents": "설치되어 있고 사용 중인 에이전트가 없습니다.",
       "allSynced": "선택한 스킬이 모두 이 에이전트에 이미 있습니다"
-    }
+    },
+    "agentTogglePendingSync": "동기화 대기",
+    "agentTogglePendingSyncHint": "이 Preset에서 활성화되었지만 아직 이 Agent에 배포되지 않았습니다. 클릭하면 배포합니다."
   },
   "install": {
     "title": "스킬 설치",
@@ -1159,5 +1161,15 @@
       "deletedLocalBatch": "로컬 스킬 {{count}}개를 삭제했습니다",
       "deleteLocalBatchFailed": "로컬 스킬 {{count}}개를 삭제하지 못했습니다"
     }
+  },
+  "errorBoundary": {
+    "title": "오류가 발생했습니다",
+    "description": "창에 예기치 않은 오류가 발생했습니다. 다시 불러오면 계속할 수 있습니다. 반복되면 아래 오류 메시지를 GitHub issue로 복사해 주세요.",
+    "copy": "오류 메시지 복사",
+    "copied": "복사됨",
+    "exportLogs": "로그 내보내기",
+    "exportLogsDone": "로그가 {{path}}에 저장되었습니다",
+    "exportLogsFailed": "로그 내보내기에 실패했습니다.",
+    "reload": "다시 불러오기"
   }
 }

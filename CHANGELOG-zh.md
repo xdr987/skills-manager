@@ -5,6 +5,42 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.44.0] - 2026-11-12
+
+### 发布概览
+- Agent 现在可以通过 CLI 管理项目级 Skill；Skill 详情页显示实际部署状态，而不是 Preset 的意向；渲染出错时不再整窗空白。
+
+### 用户可见更新
+- **用 CLI 管理项目里的 Skill** — `skills-manager-cli` 新增 `projects` 命令组：`list`、`show`、`add`、`remove`、`deploy`、`undeploy`、`import`。在某个仓库里干活的 Agent 现在可以登记这个项目，把库里的 Skill 或整个 Preset 部署进去，也可以把在项目里写的 Skill 收进库。所有会改动东西的命令都带 `--dry-run`。随应用发布的 `manage-skills` 已补上这些命令的用法。感谢 @vtxyer 和 @haringuyendev，这项功能建立在他们的 PR 之上（#660、#309、#486）。
+- **Skill 详情页显示实际部署状态** — 详情页里各 Agent 的勾和「已同步 x / y」原来跟的是 Preset 里每个 Agent 的开关，而这个开关默认是开的。所以刚加进 Preset 的 Skill 会显示全部已同步，磁盘上却什么都没有。现在绿勾表示已启用且已部署；在生效中的 Preset 上，已启用但还没部署的 Agent 显示「待同步」，点一下就部署。感谢 @akushonkamen（#662、#548、#384）。
+- **共用同一个 skills 目录的 Agent 都能部署** — 有些 Agent 读的是同一个目录，比如 Codex、GitHub Copilot 和 Pi 都读 `~/.agents/skills`。同步模式为「复制」时，从卡片、详情页或 Preset 给其中第二个 Agent 部署会被拒绝；往生效中的 Preset 里安装 Skill 时则显示成功，实际没有部署给它。现在目录里已有的副本和库里一致时，第二个 Agent 会直接接管。你改过的副本不会被动，部署照旧被拒绝（#663）。
+- **渲染出错时不再整窗空白** — 以前页面在渲染时出错，整个窗口会变成一片纯色，没有任何出路。现在会显示错误信息，并提供复制、导出日志和重新加载（#659）。
+- **重复添加同一个项目目录会明确拒绝** — 项目按规范化后的路径保存，同一个目录换种写法（末尾多一个斜杠、经过符号链接）不会再登记成两个项目，提示里会指出已有的那个项目（#660）。
+- **项目目录不存在时会提示，不再重建** — 已登记的项目目录不在了，再往里添加、移除或导入 Skill 时会直接说明。以前添加 Skill 会把这个目录重新建出来（#660）。
+- **主题默认跟随系统** — 没有选过主题时，应用现在跟随系统的浅色或深色外观，以前一律是深色。升级后同样生效：系统是浅色的话，界面会变成浅色。自己选过的主题保持不变（#652、#369）。
+
+### 开发者与治理更新
+- 移除项目里的 Skill 副本、把项目 Skill 导入库，这两处检查现在写在 Rust 里，不再只靠前端：不带 `force` 时，只有已同步的副本或指向库内副本的链接才能移除；同一个 Skill 在项目里有多份副本都与库不同时拒绝导入。应用在自己的确认弹窗之后传 `force`，行为不变（#660）。
+- 把项目 Skill 导入库时现在会拿 `RepoLock`，写 sync metadata 和审计，并在锁内解析和判定目标（#660）。
+- 项目部署的一批里，只要有一个目标会覆盖不属于该 Skill 的内容，或两个 Skill 指向同一个目录，就整批拒绝并返回 `TARGET_CONFLICT`。共用项目目录的任何一个 Agent 都可以用 `--agent` 指定，不再只认登记在前的那个（#660）。
+- 批量部署之外，别的 Agent 的 `skill_targets` 记录只允许认领内容与库一致的目录，不能用来覆盖目录。移除时按物理目录查找其他记录，经符号链接的路径别名也能认出。`skills sync --dry-run` 会把同一轮里先写的目标算进去。批量部署不再把同一路径上另一个 Skill 的记录当作许可（#663）。
+- `get_skill_tool_toggles` 为每个 Agent 返回 `deployed`，取自 `skill_targets`；TypeScript 类型里是必填（#662）。
+- 新增直接依赖 `dunce`，用于在 Windows 上得到不带 verbatim 前缀的规范路径。它原本就在 lockfile 里（#660）。
+- CI 的 Linux 任务改为跑 `cargo test`，原来只跑 `cargo check`（#661）。
+## [1.43.4] - 2026-11-10
+
+### 发布概览
+- 三项修复：TRAE CN 的项目 Skill 放进它实际读取的目录；备份卡住时不再无限期挡住检查更新；扫描本地 Skill 时，几个 Agent 共用目录里的 Skill 只出现一次。
+
+### 用户可见更新
+- **TRAE CN 的项目 Skill 放进它读取的目录** — 在项目工作区里，TRAE CN 的 Skill 之前部署到 `<项目>/.trae-cn/skills`，TRAE CN 并不读这个目录；`~/.trae-cn/skills` 只是它的全局目录。现在部署到 `<项目>/.trae/skills`，TRAE CN 和读同一目录的 TRAE IDE 合成一行。旧版本放进 `.trae-cn/skills` 的 Skill 不会被移走：请在项目里重新添加，旧目录可以删除。感谢 @zhirogo（#645、#632、#247）。
+- **备份卡住不再无限期挡住检查更新** — 后台备份时，如果备份远端不再响应（例如 SSH 连接一直没有回应），备份会一直锁着技能库，期间每次检查更新都报「skills repository is busy」。现在连接备份远端的 git 命令超过 300 秒就放弃并报错，检查更新最多等五分钟。你自己的 SSH 配置照常生效。感谢 @Carlo1911（#585）。
+- **扫描本地 Skill 时每个 Skill 只出现一次** — 有些目录被好几个 Agent 共用，例如 Codex、GitHub Copilot、Pi 等都读 `~/.agents/skills`。「扫描本地 Skills 并导入」会为每个 Agent 各列一次这个目录里的 Skill，一个 Skill 能显示六个相同的位置。现在每个目录只列一次，记在最先找到它的 Agent 名下（#646、#641）。
+
+### 开发者与治理更新
+- 备份仓库里的联网 git（fetch、push、pull、ls-remote、clone）改为走可强制结束的等待，期限 300 秒，与克隆超时一致；同时设置 `GIT_TERMINAL_PROMPT=0`、关闭 stdin，并在 HTTP 速度过低时中止。不注入 `GIT_SSH_COMMAND`。自动备份的 fetch 仍在 `RepoLock` 内执行，因为锁外的 fetch 会和替换整个目录的克隆竞争，所以这次改动是给卡住设了上限，而不是消除「busy」报错（#585）。
+- `scanner::push_discovered` 会跳过已经记录过的路径，扫描结果里的 `skills_found` 和发现列表对每个路径只计一次，记在最先找到它的 adapter 名下。后面的 adapter 不再重复计算同一目录的哈希（#646）。
+- `trae_cn` adapter 新增 `project_relative_skills_dir = ".trae/skills"`，之前回落到它的全局目录 `.trae-cn/skills`。不做迁移（#645）。
 ## [1.43.3] - 2026-11-03
 
 ### 发布概览

@@ -481,7 +481,9 @@
       "updating": "Actualizando"
     },
     "viewDoc": "Ver documentos",
-    "viewUpdates": "Ver"
+    "viewUpdates": "Ver",
+    "agentTogglePendingSync": "Pendiente de sincronizar",
+    "agentTogglePendingSyncHint": "Habilitado en este preset pero aún no desplegado en este agente. Haz clic para desplegarlo."
   },
   "install": {
     "all": "Histórico",
@@ -1159,5 +1161,15 @@
     "skillCount": "{{count}} skills",
     "subtitle": "Skills instalados globalmente para cada agente",
     "title": "Espacio de trabajo global"
+  },
+  "errorBoundary": {
+    "title": "Algo salió mal",
+    "description": "La ventana encontró un error inesperado. Recarga para continuar. Si se repite, copia el mensaje de error abajo en un issue de GitHub.",
+    "copy": "Copiar mensaje de error",
+    "copied": "Copiado",
+    "exportLogs": "Exportar registros",
+    "exportLogsDone": "Registros guardados en {{path}}",
+    "exportLogsFailed": "No se pudieron exportar los registros.",
+    "reload": "Recargar"
   }
 }

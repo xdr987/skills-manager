@@ -31,6 +31,8 @@ pub(crate) fn sync_engine_pref(store: &SkillStore) {
         .map(|v| v.trim() == "git2")
         .unwrap_or(false);
     git2_engine::set_preference(git2_enabled, store.proxy_url());
+    // The system-git runner lives in core and has no store access either.
+    crate::core::git_backup::set_cli_proxy(store.proxy_url());
 }
 
 /// Resolve the device name (§4.3 设备命名): the persisted setting, or a

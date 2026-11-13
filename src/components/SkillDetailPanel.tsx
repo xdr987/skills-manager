@@ -17,6 +17,7 @@ import {
   getSkillDocument,
   getSourceSkillDocument,
   getSkillSourceDiff,
+  getCachedTranslation,
   setSkillNotes,
   translateText,
   type ManagedSkill,
@@ -135,11 +136,13 @@ function SkillDetailPanelContent({
   const [notesEditing, setNotesEditing] = useState(false);
   const [notesDraft, setNotesDraft] = useState("");
   const [notesSaving, setNotesSaving] = useState(false);
-  // One-click translations: the short description and the full document.
-  const [descTranslated, setDescTranslated] = useState<string | null>(null);
-  const [descTranslating, setDescTranslating] = useState(false);
-  const [docTranslated, setDocTranslated] = useState<string | null>(null);
-  const [docTranslating, setDocTranslating] = useState(false);
+  // Translation: one 🌐 button covers the description and the document
+  // together, and cached results are shown as the Chinese default as soon as
+  // the sheet opens (no API call for already-translated content).
+  const [showZh, setShowZh] = useState(false);
+  const [descZh, setDescZh] = useState<string | null>(null);
+  const [docZh, setDocZh] = useState<string | null>(null);
+  const [translating, setTranslating] = useState(false);
   const localRequestIdRef = useRef(0);
   const sourceRequestIdRef = useRef(0);
   const diffRequestedRef = useRef(false);
@@ -234,27 +237,33 @@ function SkillDetailPanelContent({
     }
   };
 
-  const handleTranslateDescription = async () => {
+  // Cached translations surface as the Chinese default: once a description or
+  // document has been translated once, reopening the sheet shows Chinese.
+  useEffect(() => {
     if (!skill.description) return;
-    setDescTranslating(true);
-    try {
-      setDescTranslated(await translateText(skill.description));
-    } catch (error) {
-      toast.error(translateErrorMessage(error, t));
-    } finally {
-      setDescTranslating(false);
-    }
-  };
+    getCachedTranslation(skill.description)
+      .then((cached) => {
+        if (cached) setDescZh(cached);
+      })
+      .catch(() => {});
+  }, [skillId, skill.description]);
 
-  const handleTranslateDoc = async () => {
-    if (!activeDoc) return;
-    setDocTranslating(true);
+  const handleTranslate = async () => {
+    if (showZh) {
+      setShowZh(false);
+      return;
+    }
+    setTranslating(true);
     try {
-      setDocTranslated(await translateText(activeDoc.content));
+      // Sequential on purpose: Baidu's free tier allows 1 QPS, and the API
+      // client only retries serialized requests safely.
+      if (skill.description) setDescZh(await translateText(skill.description));
+      if (activeDoc) setDocZh(await translateText(activeDoc.content));
+      setShowZh(true);
     } catch (error) {
       toast.error(translateErrorMessage(error, t));
     } finally {
-      setDocTranslating(false);
+      setTranslating(false);
     }
   };
 
@@ -441,25 +450,21 @@ function SkillDetailPanelContent({
         skill.description ? (
           <div className="flex items-start gap-2">
             <p className="line-clamp-3 min-w-0 flex-1">
-              {descTranslated ?? skill.description}
+              {showZh && descZh ? descZh : skill.description}
             </p>
             <button
               type="button"
-              onClick={() =>
-                descTranslated
-                  ? setDescTranslated(null)
-                  : void handleTranslateDescription()
-              }
-              disabled={descTranslating}
+              onClick={() => void handleTranslate()}
+              disabled={translating}
               title={t("mySkills.translate.buttonTitle")}
               className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border-subtle bg-surface px-2 py-1 text-[12px] font-medium text-muted transition-colors hover:text-secondary disabled:opacity-60"
             >
-              {descTranslating ? (
+              {translating ? (
                 <Loader2 className="h-3 w-3 animate-spin" />
               ) : (
                 <Languages className="h-3 w-3" />
               )}
-              {descTranslated
+              {showZh
                 ? t("mySkills.translate.original")
                 : t("mySkills.translate.button")}
             </button>
@@ -517,35 +522,6 @@ function SkillDetailPanelContent({
         </div>
       )}
 
-      {contentTab === "local" && activeDoc && (
-        <div className="mb-3 flex justify-end">
-          <button
-            type="button"
-            onClick={() =>
-              docTranslated ? setDocTranslated(null) : void handleTranslateDoc()
-            }
-            disabled={docTranslating}
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium transition-colors disabled:opacity-60",
-              docTranslated
-                ? "bg-surface-hover text-muted hover:text-secondary"
-                : "bg-accent text-white"
-            )}
-          >
-            {docTranslating ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
-            ) : (
-              <Languages className="h-3 w-3" />
-            )}
-            {docTranslating
-              ? t("mySkills.translate.translating")
-              : docTranslated
-                ? t("mySkills.translate.original")
-                : t("mySkills.translate.docButton")}
-          </button>
-        </div>
-      )}
-
       {loading ? (
         <div className="mt-12 text-center text-[13px] text-muted">{t("common.loading")}</div>
       ) : contentTab === "diff" ? (
@@ -567,7 +543,7 @@ function SkillDetailPanelContent({
           <div className="mt-12 text-center text-[13px] text-muted">{t("mySkills.sourceDiffUnavailable")}</div>
         )
       ) : activeDoc ? (
-        <SkillMarkdown content={docTranslated ?? activeDoc.content} />
+        <SkillMarkdown content={showZh && docZh ? docZh : activeDoc.content} />
       ) : (
         <div className="mt-12 text-center text-[13px] text-muted">{t("common.documentMissing")}</div>
       )}

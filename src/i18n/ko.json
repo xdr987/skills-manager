@@ -583,7 +583,8 @@
         "pending": "대기",
         "imported": "가져옴"
       }
-    }
+    },
+    "detailUnavailable": "이 스킬의 소개를 가져올 수 없습니다(지원되지 않는 저장소 구조)"
   },
   "settings": {
     "title": "설정",

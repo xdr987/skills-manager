@@ -583,7 +583,8 @@
       "view": "Ver"
     },
     "trending": "En tendencia",
-    "viewOnWeb": "Ver en skills.sh"
+    "viewOnWeb": "Ver en skills.sh",
+    "detailUnavailable": "No se pudo obtener la descripción de esta skill (estructura de repo no compatible)"
   },
   "settings": {
     "about": "Acerca de",

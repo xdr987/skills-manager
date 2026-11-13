@@ -110,6 +110,22 @@ pub async fn translate_text(
     .await?
 }
 
+/// The cached Chinese translation for a piece of source text, if one exists.
+/// Lets the detail views show previously translated content in Chinese by
+/// default without touching the API.
+#[tauri::command]
+pub async fn get_cached_translation(
+    text: String,
+    store: State<'_, Arc<SkillStore>>,
+) -> Result<Option<String>, AppError> {
+    let store = store.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let source_hash = hex::encode(Sha256::digest(text.as_bytes()));
+        store.get_cached_translation(&source_hash).map_err(AppError::db)
+    })
+    .await?
+}
+
 /// Default notes for every skill that has none, across the whole app:
 /// the LLM compresses each skill's description into a short Chinese phrase
 /// the user can edit afterwards. Covers the central library AND every

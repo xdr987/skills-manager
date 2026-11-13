@@ -16,6 +16,9 @@ vi.mock("../lib/tauri", () => ({
   getSkillDocument: vi.fn(() => new Promise(() => {})),
   getSourceSkillDocument: vi.fn(() => new Promise(() => {})),
   getSkillSourceDiff: vi.fn(() => new Promise(() => {})),
+  getCachedTranslation: vi.fn(() => Promise.resolve(null)),
+  setSkillNotes: vi.fn(() => Promise.resolve()),
+  translateText: vi.fn(() => new Promise(() => {})),
 }));
 vi.mock("./SkillMarkdown", () => ({ SkillMarkdown: () => null }));
 
@@ -25,7 +28,7 @@ const skill: ManagedSkill = {
   source_revision: null, remote_revision: null, update_status: "local_only",
   last_checked_at: null, last_check_error: null, central_path: "/fixture/demo",
   enabled: true, created_at: 0, updated_at: 0, status: "ok", targets: [],
-  preset_ids: ["p1"], tags: [],
+  preset_ids: ["p1"], tags: [], notes: null,
 };
 
 function toggle(tool: string, enabled: boolean, deployed: boolean): SkillToolToggle {

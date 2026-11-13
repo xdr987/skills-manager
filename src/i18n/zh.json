@@ -589,7 +589,8 @@
         "pending": "待导入",
         "imported": "已导入"
       }
-    }
+    },
+    "detailUnavailable": "无法拉取该技能的简介（仓库结构可能不支持）"
   },
   "settings": {
     "title": "设置",

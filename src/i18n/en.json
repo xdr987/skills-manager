@@ -589,7 +589,8 @@
         "pending": "Pending",
         "imported": "Imported"
       }
-    }
+    },
+    "detailUnavailable": "Could not fetch this skill intro (unsupported repo layout)"
   },
   "settings": {
     "title": "Settings",

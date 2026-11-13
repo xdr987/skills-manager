@@ -583,7 +583,8 @@
         "pending": "待匯入",
         "imported": "已匯入"
       }
-    }
+    },
+    "detailUnavailable": "無法擷取該技能的簡介（倉庫結構可能不支援）"
   },
   "settings": {
     "title": "設定",

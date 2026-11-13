@@ -457,10 +457,12 @@ export function WorkspaceView({ config }: { config: WorkspaceConfig }) {
   const [localCenterDocLoading, setLocalCenterDocLoading] = useState(false);
   const [localContentTab, setLocalContentTab] = useState<"local" | "diff" | "center">("local");
   // One-click translations inside the local detail sheet.
-  const [localDescTranslated, setLocalDescTranslated] = useState<string | null>(null);
-  const [localDescTranslating, setLocalDescTranslating] = useState(false);
-  const [localDocTranslated, setLocalDocTranslated] = useState<string | null>(null);
-  const [localDocTranslating, setLocalDocTranslating] = useState(false);
+  // Translation: one 🌐 button covers the description and the document, and
+  // cached results are the Chinese default when the sheet opens.
+  const [localShowZh, setLocalShowZh] = useState(false);
+  const [localDescZh, setLocalDescZh] = useState<string | null>(null);
+  const [localDocZh, setLocalDocZh] = useState<string | null>(null);
+  const [localTranslating, setLocalTranslating] = useState(false);
   const [uploadConfirmSkill, setUploadConfirmSkill] = useState<ProjectSkill | null>(null);
   const [pullConfirmSkill, setPullConfirmSkill] = useState<ProjectSkill | null>(null);
   const [deleteLocalConfirmSkill, setDeleteLocalConfirmSkill] = useState<ProjectSkill | null>(null);
@@ -471,9 +473,32 @@ export function WorkspaceView({ config }: { config: WorkspaceConfig }) {
 
   // A different skill in the sheet starts with clean translation state.
   useEffect(() => {
-    setLocalDescTranslated(null);
-    setLocalDocTranslated(null);
+    setLocalShowZh(false);
+    setLocalDescZh(null);
+    setLocalDocZh(null);
   }, [localDetailSkill]);
+
+  // Cached translations surface as the Chinese default: once a description or
+  // document has been translated once, reopening the sheet shows Chinese.
+  useEffect(() => {
+    if (!localDetailSkill?.description) return;
+    api
+      .getCachedTranslation(localDetailSkill.description)
+      .then((cached) => {
+        if (cached) setLocalDescZh(cached);
+      })
+      .catch(() => {});
+  }, [localDetailSkill]);
+
+  useEffect(() => {
+    if (!localDocContent) return;
+    api
+      .getCachedTranslation(localDocContent)
+      .then((cached) => {
+        if (cached) setLocalDocZh(cached);
+      })
+      .catch(() => {});
+  }, [localDocContent]);
 
   // Sidebar navigation / route changes dismiss the local detail sheet too —
   // including a click on the current agent's own sidebar entry.
@@ -481,27 +506,22 @@ export function WorkspaceView({ config }: { config: WorkspaceConfig }) {
     setLocalDetailSkill(null);
   }, [detailsDismissVersion]);
 
-  const handleTranslateLocalDesc = async () => {
-    if (!localDetailSkill?.description) return;
-    setLocalDescTranslating(true);
-    try {
-      setLocalDescTranslated(await api.translateText(localDetailSkill.description));
-    } catch (error: unknown) {
-      toast.error(translateErrorHint(error, t));
-    } finally {
-      setLocalDescTranslating(false);
+  const handleTranslateLocal = async () => {
+    if (localShowZh) {
+      setLocalShowZh(false);
+      return;
     }
-  };
-
-  const handleTranslateLocalDoc = async () => {
-    if (!localDocContent) return;
-    setLocalDocTranslating(true);
+    setLocalTranslating(true);
     try {
-      setLocalDocTranslated(await api.translateText(localDocContent));
+      // Sequential: Baidu's free tier allows 1 QPS.
+      if (localDetailSkill?.description)
+        setLocalDescZh(await api.translateText(localDetailSkill.description));
+      if (localDocContent) setLocalDocZh(await api.translateText(localDocContent));
+      setLocalShowZh(true);
     } catch (error: unknown) {
       toast.error(translateErrorHint(error, t));
     } finally {
-      setLocalDocTranslating(false);
+      setLocalTranslating(false);
     }
   };
 
@@ -1432,25 +1452,21 @@ export function WorkspaceView({ config }: { config: WorkspaceConfig }) {
           localDetailSkill?.description ? (
             <div className="flex items-start gap-2">
               <p className="line-clamp-3 min-w-0 flex-1">
-                {localDescTranslated ?? localDetailSkill.description}
+                {localShowZh && localDescZh ? localDescZh : localDetailSkill.description}
               </p>
               <button
                 type="button"
-                onClick={() =>
-                  localDescTranslated
-                    ? setLocalDescTranslated(null)
-                    : void handleTranslateLocalDesc()
-                }
-                disabled={localDescTranslating}
+                onClick={() => void handleTranslateLocal()}
+                disabled={localTranslating}
                 title={t("mySkills.translate.buttonTitle")}
                 className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border-subtle bg-surface px-2 py-1 text-[12px] font-medium text-muted transition-colors hover:text-secondary disabled:opacity-60"
               >
-                {localDescTranslating ? (
+                {localTranslating ? (
                   <Loader2 className="h-3 w-3 animate-spin" />
                 ) : (
                   <Languages className="h-3 w-3" />
                 )}
-                {localDescTranslated
+                {localShowZh
                   ? t("mySkills.translate.original")
                   : t("mySkills.translate.button")}
               </button>
@@ -1509,37 +1525,6 @@ export function WorkspaceView({ config }: { config: WorkspaceConfig }) {
           </div>
         )}
 
-        {localDocContent && localContentTab === "local" && (
-          <div className="mb-3 flex justify-end">
-            <button
-              type="button"
-              onClick={() =>
-                localDocTranslated
-                  ? setLocalDocTranslated(null)
-                  : void handleTranslateLocalDoc()
-              }
-              disabled={localDocTranslating}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium transition-colors disabled:opacity-60",
-                localDocTranslated
-                  ? "bg-surface-hover text-muted hover:text-secondary"
-                  : "bg-accent text-white"
-              )}
-            >
-              {localDocTranslating ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <Languages className="h-3 w-3" />
-              )}
-              {localDocTranslating
-                ? t("mySkills.translate.translating")
-                : localDocTranslated
-                  ? t("mySkills.translate.original")
-                  : t("mySkills.translate.docButton")}
-            </button>
-          </div>
-        )}
-
         {localDocLoading ? (
           <div className="mt-12 text-center text-[13px] text-muted">{t("common.loading")}</div>
         ) : localContentTab === "diff" ? (
@@ -1559,7 +1544,7 @@ export function WorkspaceView({ config }: { config: WorkspaceConfig }) {
             <div className="mt-12 text-center text-[13px] text-muted">{t("mySkills.sourceDiffUnavailable")}</div>
           )
         ) : localDocContent ? (
-          <SkillMarkdown content={localDocTranslated ?? localDocContent} />
+          <SkillMarkdown content={localShowZh && localDocZh ? localDocZh : localDocContent} />
         ) : (
           <div className="mt-12 text-center text-[13px] text-muted">{t("common.documentMissing")}</div>
         )}

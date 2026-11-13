@@ -133,6 +133,13 @@ export interface SkillsShSkill {
   installs: number;
 }
 
+/** Frontmatter description + full SKILL.md content fetched from the skill's
+ *  GitHub repository (no clone; raw.githubusercontent with the app proxy). */
+export interface MarketplaceSkillDetails {
+  description: string | null;
+  content: string | null;
+}
+
 export interface SyncHealth {
   in_sync: number;
   project_newer: number;
@@ -415,6 +422,10 @@ export const deleteTag = (name: string) =>
 export const translateText = (text: string) =>
   invoke<string>("translate_text", { text });
 
+/** The cached Chinese translation for this source text, if one exists. */
+export const getCachedTranslation = (text: string) =>
+  invoke<string | null>("get_cached_translation", { text });
+
 /** Generate default Chinese notes (translated descriptions) for every
  *  library skill that has none. Returns how many skills got a note. */
 export const generateMissingNotes = () =>
@@ -459,6 +470,11 @@ export const searchSkillssh = (query: string, limit?: number) =>
     query,
     limit: limit ?? null,
   });
+
+/** Fetch a marketplace skill's SKILL.md (description + content) from its
+ *  GitHub repository without cloning. */
+export const fetchMarketplaceSkillDetails = (source: string, skillId: string) =>
+  invoke<MarketplaceSkillDetails>("fetch_marketplace_skill_details", { source, skillId });
 
 // ── Settings ──
 

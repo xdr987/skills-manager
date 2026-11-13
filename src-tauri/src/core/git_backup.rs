@@ -2,12 +2,46 @@ use anyhow::{Context, Result};
 use chrono::Utc;
 use std::io::Read;
 use std::path::{Path, PathBuf};
+use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
 use super::git2_engine;
 use super::git_command::git_command;
 use super::git_credentials;
 use super::merge::protocol;
+
+static GIT_CLI_PROXY_URL: OnceLock<Mutex<Option<String>>> = OnceLock::new();
+
+/// Sync the system-git CLI proxy from settings. Called at the entry of backup
+/// commands alongside `git2_engine::set_preference` (core code has no store
+/// access). Without this, backup fetch/push/clone run direct and fail behind
+/// a firewall even though the user configured a proxy for everything else.
+pub fn set_cli_proxy(proxy_url: Option<String>) {
+    *GIT_CLI_PROXY_URL
+        .get_or_init(|| Mutex::new(None))
+        .lock()
+        .unwrap_or_else(|e| e.into_inner()) = proxy_url.filter(|s| !s.is_empty());
+}
+
+/// `-c http.proxy=… -c https.proxy=…` args for the runner, empty when unset.
+/// Local commands ignore the http.* config, so unconditional injection is
+/// harmless and keeps the call sites simple.
+fn cli_proxy_args() -> Vec<String> {
+    GIT_CLI_PROXY_URL
+        .get_or_init(|| Mutex::new(None))
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .clone()
+        .map(|url| {
+            vec![
+                "-c".to_string(),
+                format!("http.proxy={url}"),
+                "-c".to_string(),
+                format!("https.proxy={url}"),
+            ]
+        })
+        .unwrap_or_default()
+}
 use super::repo_lock::RepoLock;
 
 /// Upper bound for a single network round-trip against the backup remote
@@ -1851,6 +1885,7 @@ fn run_git_env(dir: &Path, args: &[&str], envs: &[(String, String)]) -> Result<S
     let output = git_command()
         .arg("-C")
         .arg(dir)
+        .args(cli_proxy_args())
         .args(args)
         .envs(envs.iter().map(|(k, v)| (k.as_str(), v.as_str())))
         .output()
@@ -1908,6 +1943,9 @@ fn run_git_env_killable_with_timeout(
     let mut cmd = git_command();
     cmd.arg("-C").arg(dir);
     for arg in network_runner_global_args() {
+        cmd.arg(arg);
+    }
+    for arg in cli_proxy_args() {
         cmd.arg(arg);
     }
     let extra_envs = network_runner_extra_envs();

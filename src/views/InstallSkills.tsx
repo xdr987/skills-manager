@@ -9,6 +9,7 @@ import {
   Clock,
   Plus,
   FolderUp,
+  Languages,
   Loader2,
   RefreshCw,
   FolderSearch,
@@ -28,13 +29,22 @@ import { toast } from "sonner";
 import { cn } from "../utils";
 import { useApp } from "../context/AppContext";
 import * as api from "../lib/tauri";
-import type { ScanResult, SkillsShSkill, BatchImportResult, GitPreviewResult } from "../lib/tauri";
+import type { ScanResult, SkillsShSkill, BatchImportResult, GitPreviewResult, MarketplaceSkillDetails } from "../lib/tauri";
 import { open } from "@tauri-apps/plugin-dialog";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { listen } from "@tauri-apps/api/event";
 import { StatusBanner } from "../components/StatusBanner";
+import { DetailSheet } from "../components/DetailSheet";
+import { SkillMarkdown } from "../components/SkillMarkdown";
 import { getErrorMessage, getErrorKind } from "../lib/error";
+
+/** Toast text for a failed translate call, mapping the backend's
+ *  "not configured" sentinel to a localized hint. */
+const translateErrorHint = (error: unknown, t: (key: string) => string): string =>
+  getErrorKind(error) === "invalid_input"
+    ? t("mySkills.translate.notConfigured")
+    : getErrorMessage(error, t("common.error"));
 
 const MARKET_PAGE_SIZE = 24;
 const MARKET_SEARCH_STEP = 60;
@@ -67,6 +77,76 @@ export function InstallSkills() {
   const [gitCancelKey, setGitCancelKey] = useState<string | null>(null);
   const [gitPreview, setGitPreview] = useState<GitPreviewResult | null>(null);
   const [gitPreviewRepoUrl, setGitPreviewRepoUrl] = useState<string | null>(null);
+  // Marketplace detail sheet: description + SKILL.md fetched from GitHub raw,
+  // translated once and cached (reopening shows Chinese without API calls).
+  const [marketDetailSkill, setMarketDetailSkill] = useState<SkillsShSkill | null>(null);
+  const [marketDetails, setMarketDetails] = useState<MarketplaceSkillDetails | null>(null);
+  const [marketDetailsLoading, setMarketDetailsLoading] = useState(false);
+  const [marketShowZh, setMarketShowZh] = useState(false);
+  const [marketDescZh, setMarketDescZh] = useState<string | null>(null);
+  const [marketDocZh, setMarketDocZh] = useState<string | null>(null);
+  const [marketTranslating, setMarketTranslating] = useState(false);
+
+  const openMarketDetail = useCallback(
+    (skill: SkillsShSkill) => {
+      setMarketDetailSkill(skill);
+      setMarketDetails(null);
+      setMarketShowZh(false);
+      setMarketDescZh(null);
+      setMarketDocZh(null);
+      setMarketDetailsLoading(true);
+      api
+        .fetchMarketplaceSkillDetails(skill.source, skill.skill_id)
+        .then((details) => {
+          setMarketDetails(details);
+          // Cached translations become the Chinese default without an API
+          // call; first-time skills stay English until 🌐 is pressed.
+          const tasks: Promise<void>[] = [];
+          if (details.description)
+            tasks.push(
+              api
+                .getCachedTranslation(details.description)
+                .then((cached) => {
+                  if (cached) setMarketDescZh(cached);
+                })
+            );
+          if (details.content)
+            tasks.push(
+              api
+                .getCachedTranslation(details.content)
+                .then((cached) => {
+                  if (cached) setMarketDocZh(cached);
+                })
+            );
+          return Promise.all(tasks).then(() => {
+            if (details.description || details.content) setMarketShowZh(true);
+          });
+        })
+        .catch((error: unknown) => toast.error(translateErrorHint(error, t)))
+        .finally(() => setMarketDetailsLoading(false));
+    },
+    [t]
+  );
+
+  const handleTranslateMarket = async () => {
+    if (marketShowZh) {
+      setMarketShowZh(false);
+      return;
+    }
+    setMarketTranslating(true);
+    try {
+      // Sequential: Baidu's free tier allows 1 QPS.
+      if (marketDetails?.description)
+        setMarketDescZh(await api.translateText(marketDetails.description));
+      if (marketDetails?.content)
+        setMarketDocZh(await api.translateText(marketDetails.content));
+      setMarketShowZh(true);
+    } catch (error: unknown) {
+      toast.error(translateErrorHint(error, t));
+    } finally {
+      setMarketTranslating(false);
+    }
+  };
   const [gitSelections, setGitSelections] = useState<{ rel_path: string; name: string; description: string | null; selected: boolean }[]>([]);
   const [gitConfirmLoading, setGitConfirmLoading] = useState(false);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
@@ -1034,7 +1114,8 @@ export function InstallSkills() {
                       return (
                       <div
                         key={skill.id}
-                        className="app-panel flex flex-col gap-2 p-3 transition-colors hover:border-border"
+                        onClick={() => openMarketDetail(skill)}
+                        className="app-panel flex cursor-pointer flex-col gap-2 p-3 transition-colors hover:border-border"
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -1056,11 +1137,14 @@ export function InstallSkills() {
 
                           <div className="flex shrink-0 items-center gap-1">
                             <button
-                              onClick={() => openUrl(
-                                skill.source.includes("/")
-                                  ? `https://skills.sh/${skill.source}/${skill.skill_id}`
-                                  : `https://skills.sh/site/${skill.source}/${skill.skill_id}`
-                              )}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openUrl(
+                                  skill.source.includes("/")
+                                    ? `https://skills.sh/${skill.source}/${skill.skill_id}`
+                                    : `https://skills.sh/site/${skill.source}/${skill.skill_id}`
+                                );
+                              }}
                               className="rounded-md p-1 text-muted transition-colors hover:bg-surface-hover hover:text-secondary"
                               title={t("install.viewOnWeb")}
                             >
@@ -1075,7 +1159,10 @@ export function InstallSkills() {
                               </span>
                             ) : installing === skill.id ? (
                               <button
-                                onClick={() => handleCancelInstall(`${skill.source}/${skill.skill_id}`)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCancelInstall(`${skill.source}/${skill.skill_id}`);
+                                }}
                                 className="inline-flex items-center gap-1 rounded-md border border-red-500/30 bg-red-500/10 px-1.5 py-1 text-red-600 dark:text-red-400 transition-colors hover:bg-red-500/20"
                                 title={t("install.cancel")}
                                 aria-label={t("install.cancel")}
@@ -1087,7 +1174,10 @@ export function InstallSkills() {
                               </button>
                             ) : (
                               <button
-                                onClick={() => handleInstallSkillssh(skill)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleInstallSkillssh(skill);
+                                }}
                                 disabled={installing !== null}
                                 className="rounded-md border border-accent-border bg-accent-dark p-1 text-white transition-colors hover:bg-accent disabled:opacity-50"
                                 title={t("install.oneClickInstall")}
@@ -1101,7 +1191,10 @@ export function InstallSkills() {
                         <div className="flex flex-wrap items-center gap-1">
                           <button
                             type="button"
-                            onClick={() => setMarketSourceFilter(skill.source)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setMarketSourceFilter(skill.source);
+                            }}
                             disabled={marketSourceFilter === skill.source}
                             title={t("install.onlyThisContributor")}
                             className={cn(
@@ -1638,6 +1731,112 @@ export function InstallSkills() {
           </div>
         </div>
       )}
+
+      <DetailSheet
+        open={!!marketDetailSkill}
+        title={marketDetailSkill?.name ?? ""}
+        description={
+          marketDetailsLoading ? undefined : (
+            <div className="flex items-start gap-2">
+              <p className="line-clamp-3 min-w-0 flex-1">
+                {marketDetails?.description
+                  ? (marketShowZh && marketDescZh ? marketDescZh : marketDetails.description)
+                  : t("install.detailUnavailable")}
+              </p>
+              {marketDetails?.description ? (
+                <button
+                  type="button"
+                  onClick={() => void handleTranslateMarket()}
+                  disabled={marketTranslating}
+                  title={t("mySkills.translate.buttonTitle")}
+                  className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border-subtle bg-surface px-2 py-1 text-[12px] font-medium text-muted transition-colors hover:text-secondary disabled:opacity-60"
+                >
+                  {marketTranslating ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Languages className="h-3 w-3" />
+                  )}
+                  {marketShowZh
+                    ? t("mySkills.translate.original")
+                    : t("mySkills.translate.button")}
+                </button>
+              ) : null}
+            </div>
+          )
+        }
+        meta={
+          marketDetailSkill ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-surface-hover px-2.5 py-1 text-[12px] font-medium text-muted">
+                @{marketDetailSkill.source}
+              </span>
+              {marketDetailSkill.installs > 0 && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-surface-hover px-2.5 py-1 text-[12px] text-muted">
+                  <DownloadCloud className="h-3 w-3" />
+                  {marketDetailSkill.installs}
+                </span>
+              )}
+              {installedSourceRefs.has(`${marketDetailSkill.source}/${marketDetailSkill.skill_id}`) ? (
+                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-[12px] font-medium text-emerald-600 dark:text-emerald-400">
+                  <Check className="h-3 w-3" />
+                  {t("install.installed")}
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => marketDetailSkill && handleInstallSkillssh(marketDetailSkill)}
+                  disabled={installing !== null}
+                  className="inline-flex items-center gap-1 rounded-full bg-accent px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+                >
+                  {installing === marketDetailSkill.id ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Plus className="h-3 w-3" />
+                  )}
+                  {t("install.oneClickInstall")}
+                </button>
+              )}
+            </div>
+          ) : null
+        }
+        onClose={() => setMarketDetailSkill(null)}
+      >
+        {marketDetailsLoading ? (
+          <div className="mt-12 text-center text-[13px] text-muted">{t("common.loading")}</div>
+        ) : marketDetails?.content ? (
+          <>
+            {marketDetails.description ? null : (
+              <div className="mb-3 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => void handleTranslateMarket()}
+                  disabled={marketTranslating || !marketDetails.content}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium transition-colors disabled:opacity-60",
+                    marketShowZh && marketDocZh
+                      ? "bg-surface-hover text-muted hover:text-secondary"
+                      : "bg-accent text-white"
+                  )}
+                >
+                  {marketTranslating ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Languages className="h-3 w-3" />
+                  )}
+                  {marketTranslating
+                    ? t("mySkills.translate.translating")
+                    : marketShowZh && marketDocZh
+                      ? t("mySkills.translate.original")
+                      : t("mySkills.translate.docButton")}
+                </button>
+              </div>
+            )}
+            <SkillMarkdown content={marketShowZh && marketDocZh ? marketDocZh : marketDetails.content} />
+          </>
+        ) : (
+          <div className="mt-12 text-center text-[13px] text-muted">{t("install.detailUnavailable")}</div>
+        )}
+      </DetailSheet>
     </div>
   );
 }

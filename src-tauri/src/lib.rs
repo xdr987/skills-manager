@@ -1116,6 +1116,7 @@ pub fn run() {
             commands::skills::batch_import_folder,
             // Translate
             commands::translate::translate_text,
+            commands::translate::get_cached_translation,
             commands::translate::generate_missing_notes,
             // Sync
             commands::sync::sync_skill_to_tool,
@@ -1129,6 +1130,7 @@ pub fn run() {
             // Browse
             commands::browse::fetch_leaderboard,
             commands::browse::search_skillssh,
+            commands::browse::fetch_marketplace_skill_details,
             // Settings
             commands::settings::get_settings,
             commands::settings::set_settings,

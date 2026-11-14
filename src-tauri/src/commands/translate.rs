@@ -92,16 +92,8 @@ pub async fn translate_text(
             return Ok(cached);
         }
         let (app_id, api_key) = baidu_credentials(&store)?;
-        let proxy_url = store.proxy_url();
-        let translated = translate_api::translate_text(
-            &text,
-            "auto",
-            "zh",
-            &app_id,
-            &api_key,
-            proxy_url.as_deref(),
-        )
-        .map_err(AppError::network)?;
+        let translated = translate_api::translate_text(&text, "auto", "zh", &app_id, &api_key)
+            .map_err(AppError::network)?;
         store
             .save_cached_translation(&source_hash, &translated)
             .map_err(AppError::db)?;
@@ -137,7 +129,6 @@ pub async fn generate_missing_notes(
     let store = store.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
         let (base_url, api_key, model) = llm_credentials(&store)?;
-        let proxy_url = store.proxy_url();
         let summarize = |description: &str| -> Result<String, AppError> {
             llm_api::chat_completion(
                 &base_url,
@@ -146,7 +137,6 @@ pub async fn generate_missing_notes(
                 SUMMARY_SYSTEM_PROMPT,
                 description,
                 60,
-                proxy_url.as_deref(),
             )
             .map_err(AppError::network)
         };

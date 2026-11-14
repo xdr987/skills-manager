@@ -4,6 +4,17 @@ use serde::Deserialize;
 use std::time::Duration;
 
 const ENDPOINT: &str = "https://fanyi-api.baidu.com/api/trans/vip/translate";
+
+/// Baidu is a mainland-China service: it must connect direct. Routing it
+/// through the user's GitHub proxy (an overseas node) breaks the TLS
+/// handshake, so this module deliberately ignores `proxy_url`.
+fn build_direct_client(timeout_secs: u64) -> Result<reqwest::blocking::Client> {
+    reqwest::blocking::Client::builder()
+        .user_agent("skills-manager")
+        .timeout(std::time::Duration::from_secs(timeout_secs))
+        .build()
+        .context("Failed to build HTTP client")
+}
 /// Baidu caps a single query at 6000 UTF-8 bytes; stay well under so the
 /// appid/salt/sign form overhead never pushes a request over the line.
 const MAX_QUERY_BYTES: usize = 4000;
@@ -48,13 +59,12 @@ pub fn translate_text(
     to: &str,
     app_id: &str,
     api_key: &str,
-    proxy_url: Option<&str>,
 ) -> Result<String> {
     if text.trim().is_empty() {
         return Ok(text.to_string());
     }
 
-    let client = super::skillssh_api::build_http_client(proxy_url, 30);
+    let client = build_direct_client(30)?;
     let mut out = String::with_capacity(text.len() + text.len() / 4);
     let mut first_request = true;
 

@@ -45,6 +45,10 @@ pub fn completions_endpoint(base_url: &str) -> String {
 
 /// Ask the model to compress `text` into a short Chinese phrase, guided by
 /// `system_prompt`. Returns the trimmed content of the first choice.
+///
+/// LLM endpoints used here (Zhipu, Kimi, DeepSeek) are mainland-China
+/// services: like the Baidu client this connects direct — through an
+/// overseas proxy node the TLS handshake fails.
 pub fn chat_completion(
     base_url: &str,
     api_key: &str,
@@ -52,9 +56,12 @@ pub fn chat_completion(
     system_prompt: &str,
     user_text: &str,
     max_tokens: u32,
-    proxy_url: Option<&str>,
 ) -> Result<String> {
-    let client = super::skillssh_api::build_http_client(proxy_url, 30);
+    let client = reqwest::blocking::Client::builder()
+        .user_agent("skills-manager")
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .context("Failed to build HTTP client")?;
     let endpoint = completions_endpoint(base_url);
 
     let body = serde_json::json!({

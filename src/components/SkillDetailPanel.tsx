@@ -243,7 +243,10 @@ function SkillDetailPanelContent({
     if (!skill.description) return;
     getCachedTranslation(skill.description)
       .then((cached) => {
-        if (cached) setDescZh(cached);
+        if (cached) {
+          setDescZh(cached);
+          setShowZh(true);
+        }
       })
       .catch(() => {});
   }, [skillId, skill.description]);

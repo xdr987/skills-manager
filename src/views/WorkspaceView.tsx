@@ -485,7 +485,10 @@ export function WorkspaceView({ config }: { config: WorkspaceConfig }) {
     api
       .getCachedTranslation(localDetailSkill.description)
       .then((cached) => {
-        if (cached) setLocalDescZh(cached);
+        if (cached) {
+          setLocalDescZh(cached);
+          setLocalShowZh(true);
+        }
       })
       .catch(() => {});
   }, [localDetailSkill]);
@@ -495,7 +498,10 @@ export function WorkspaceView({ config }: { config: WorkspaceConfig }) {
     api
       .getCachedTranslation(localDocContent)
       .then((cached) => {
-        if (cached) setLocalDocZh(cached);
+        if (cached) {
+          setLocalDocZh(cached);
+          setLocalShowZh(true);
+        }
       })
       .catch(() => {});
   }, [localDocContent]);

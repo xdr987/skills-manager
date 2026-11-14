@@ -88,42 +88,43 @@ export function InstallSkills() {
   const [marketTranslating, setMarketTranslating] = useState(false);
 
   const openMarketDetail = useCallback(
-    (skill: SkillsShSkill) => {
+    async (skill: SkillsShSkill) => {
       setMarketDetailSkill(skill);
       setMarketDetails(null);
       setMarketShowZh(false);
       setMarketDescZh(null);
       setMarketDocZh(null);
       setMarketDetailsLoading(true);
-      api
-        .fetchMarketplaceSkillDetails(skill.source, skill.skill_id)
-        .then((details) => {
-          setMarketDetails(details);
-          // Cached translations become the Chinese default without an API
-          // call; first-time skills stay English until 🌐 is pressed.
-          const tasks: Promise<void>[] = [];
-          if (details.description)
-            tasks.push(
-              api
-                .getCachedTranslation(details.description)
-                .then((cached) => {
-                  if (cached) setMarketDescZh(cached);
-                })
-            );
-          if (details.content)
-            tasks.push(
-              api
-                .getCachedTranslation(details.content)
-                .then((cached) => {
-                  if (cached) setMarketDocZh(cached);
-                })
-            );
-          return Promise.all(tasks).then(() => {
-            if (details.description || details.content) setMarketShowZh(true);
-          });
-        })
-        .catch((error: unknown) => toast.error(translateErrorHint(error, t)))
-        .finally(() => setMarketDetailsLoading(false));
+      try {
+        const details = await api.fetchMarketplaceSkillDetails(skill.source, skill.skill_id);
+        setMarketDetails(details);
+        // Cached translations become the Chinese default; a first-time skill
+        // (cache miss) stays English with the 翻译 label — never 原文.
+        let found = false;
+        if (details.description) {
+          const cached = await api
+            .getCachedTranslation(details.description)
+            .catch(() => null);
+          if (cached) {
+            setMarketDescZh(cached);
+            found = true;
+          }
+        }
+        if (details.content) {
+          const cached = await api
+            .getCachedTranslation(details.content)
+            .catch(() => null);
+          if (cached) {
+            setMarketDocZh(cached);
+            found = true;
+          }
+        }
+        if (found) setMarketShowZh(true);
+      } catch (error: unknown) {
+        toast.error(translateErrorHint(error, t));
+      } finally {
+        setMarketDetailsLoading(false);
+      }
     },
     [t]
   );
@@ -1114,7 +1115,7 @@ export function InstallSkills() {
                       return (
                       <div
                         key={skill.id}
-                        onClick={() => openMarketDetail(skill)}
+                        onClick={() => void openMarketDetail(skill)}
                         className="app-panel flex cursor-pointer flex-col gap-2 p-3 transition-colors hover:border-border"
                       >
                         <div className="flex items-start justify-between gap-2">
